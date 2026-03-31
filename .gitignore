@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+*.db-shm
+*.db-wal
+logs/
+data/uploads/
+.env
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
