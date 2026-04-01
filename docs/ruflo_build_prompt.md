@@ -37,6 +37,7 @@ You are building **MCPT** (Model Change Package Tracker), a Flask web applicatio
 11. **Waitress** for production. `serve(app, host='0.0.0.0', port=5060, threads=8)`
 12. **SQLite WAL**: `PRAGMA journal_mode=WAL` on `notifications.db` at startup
 13. **No framework JS**: Every UI feature in vanilla JS. Module pattern = IIFE.
+14. **Column detection by header name — ALWAYS**: Any module that processes an uploaded file (Excel, CSV, etc.) MUST detect columns by reading the header row and matching by name. NEVER access columns by position index (e.g., `row[22]`, `row[col_U]`), by Excel column letter, or by any hardcoded position. Different users may have different column orders in their SAP or other reports. This rule applies to ALL file inputs in the entire app — no exceptions.
 
 ---
 

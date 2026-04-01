@@ -80,10 +80,13 @@ These are non-negotiable. If Ruflo violates any, stop and require correction imm
 - These are DIFFERENT GUIDs on DIFFERENT servers. Any code that uses one GUID for both is wrong.
 - Neither URL uses the row `GUID` field — verify this in `nimbus_adapter.py`.
 
-### E. Metrics Column Detection
-- Modules 5, 6, and 7 must detect ALL columns by reading the header row — never by position index.
-- No code like `row[22]`, `row['U']`, or column letters should appear in the SAP/DID processing logic.
-- Flag any hardcoded column references in `process_charging()`, `process_boe()`, or `process_did_working()`.
+### E. Column Detection — GLOBAL RULE (All File Inputs, Every Module)
+This rule applies to **any and all file uploads throughout the entire app**, not just Modules 5–7.
+Different users may have different column orders in their SAP exports, DID reports, or any other file.
+- All uploaded file processing MUST detect columns by reading the header row and matching by name.
+- No hardcoded column positions anywhere: no `row[22]`, no `row['U']`, no Excel column letters.
+- This applies to: `process_charging()`, `process_boe()`, `process_did_working()`, and any future file-processing function.
+- Flag any numeric column index or Excel letter reference found in any file-processing code.
 
 ### F. Windows/Deployment
 - All `open()` calls must have `encoding='utf-8', errors='replace'`.
@@ -184,8 +187,12 @@ Ruflo may write `fetch('http://127.0.0.1:8000/get-mcpt')` in JS. This violates t
 ### Milliseconds vs Seconds
 Ruflo will often write `datetime.fromtimestamp(ts)` when it should be `datetime.fromtimestamp(ts/1000)`. The difference: treating ms as seconds gives a date in the year 2026 vs. the year 58,000.
 
-### Hardcoded SAP Columns
-Despite the spec's explicit instruction against hardcoding, Ruflo may write `row[22]` or `ws.cell(row=i, column=22)` for the hours column. Any numeric column index in Modules 5-7 is a bug.
+### Hardcoded Column Positions (Global Bug)
+Despite the spec's explicit instruction, Ruflo may write `row[22]` or `ws.cell(row=i, column=22)`.
+This applies to ALL modules that process uploaded files — not just Modules 5-7.
+Any numeric column index, Excel column letter, or positional reference in any file-processing
+function is a bug. The user has explicitly stated: different users have different column layouts,
+so header-name detection is the only acceptable approach throughout the entire app.
 
 ### Flask Dev Server
 Ruflo may write `app.run(debug=True)` in `app.py`. This must be `waitress.serve(app, host='0.0.0.0', port=5060, threads=8)` in production mode.
