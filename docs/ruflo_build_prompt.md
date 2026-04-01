@@ -75,6 +75,79 @@ Before implementing any feature, ask: *Has this been done in corporate engineeri
 
 ---
 
+## GitHub Coordination Protocol — How Ruflo and Opus Communicate
+
+Ruflo and Opus run as two independent sessions with no human relay. They coordinate entirely through the GitHub repo `nicholasgeorgeson-prog/MCPT`. This section defines the contract between them.
+
+**PAT**: `ghp_REDACTED_SEE_LOCAL_CLAUDE_MD` — retrieve from local `CLAUDE.md` line 105 before starting any push.
+
+### What Ruflo writes to GitHub
+
+**After every module is complete**, push all files for that module with a structured commit message:
+```
+[MODULE-01-COMPLETE] MCPT Main Table — routes/main_routes.py, static/js/mcpt-table.js
+```
+Use the exact tag format `[MODULE-XX-COMPLETE]` where XX is the zero-padded module number. Opus listens for this exact tag.
+
+**`build_status.json`** — update this file in the repo root after every module push:
+```json
+{
+  "build_started": "2026-04-01T10:00:00Z",
+  "overall_status": "building",
+  "modules": {
+    "module_01": { "status": "complete",     "commit": "abc123", "files": ["routes/main_routes.py", "static/js/mcpt-table.js"] },
+    "module_02": { "status": "in_progress",  "commit": null },
+    "module_03": { "status": "pending",      "commit": null }
+  }
+}
+```
+Valid status values: `pending` → `in_progress` → `complete` → `fixed` (after correcting a FAIL review).
+
+**After fixing a FAIL review**, push corrections with:
+```
+[MODULE-01-FIXED] Corrected DSL UUID/GUID mix-up per Opus review
+```
+Then update `module_01.status` to `"fixed"` in `build_status.json`.
+
+### What Ruflo reads from GitHub
+
+**Before pushing the final `[BUILD-COMPLETE]` commit**, check every file in `reviews/` for `STATUS: FAIL`. Do this by fetching the `reviews/` directory listing via GitHub API and reading each `module_XX_review.md`.
+
+If any review is `STATUS: FAIL`:
+1. Read the Issues Found section
+2. Fix every listed issue
+3. Push corrections with `[MODULE-XX-FIXED]` tag
+4. Wait for the review file to update to `STATUS: PASS` (poll `reviews/module_XX_review.md` every 3 minutes)
+5. Once all reviews are `STATUS: PASS`, push the final commit
+
+**Do not block on Opus during the build.** Build ahead — push Module 1, immediately start Module 2. Check reviews only at the end of the full build or if a review file for the *immediately previous* module shows FAIL before you start the next. This prevents error propagation without stalling progress.
+
+### Exception: Blocking Errors
+
+If Opus flags one of these critical errors in any review, stop and fix before building the *next* module (not just before final):
+- GUID/DraftDSLID/MasterDSLID confusion
+- Three-state boolean rendering missing the `null` state
+- `open()` calls without encoding
+- Column position hardcoding instead of header detection
+- Direct browser-to-API calls bypassing the Flask proxy
+
+All other issues can be fixed at end-of-build.
+
+### Coordination Files in the Repo
+
+```
+build_status.json          ← Ruflo writes (module completion state)
+reviews/
+├── module_01_review.md    ← Opus writes (PASS/FAIL + issues)
+├── module_02_review.md
+├── ...
+└── FINAL_REPORT.md        ← Opus writes when all 16 modules reviewed
+```
+
+Neither file is part of the deployed app. They exist only to coordinate the build.
+
+---
+
 ## CRITICAL RULES — Read Before Writing a Single Line
 
 1. **All file `open()` calls**: `encoding='utf-8', errors='replace'`
@@ -103,8 +176,13 @@ C:\MCPT\
 ├── auth.py
 ├── nimbus_adapter.py
 ├── version.json                     {"version": "0.2.0", "date": "2026-04-01"}
+├── build_status.json                ← Coordination file (Ruflo writes, Opus reads)
 ├── Start_MCPT.bat
 ├── requirements.txt
+├── reviews/                         ← Opus writes review results here (not deployed)
+│   ├── module_01_review.md
+│   ├── ...
+│   └── FINAL_REPORT.md
 ├── routes/
 │   ├── __init__.py
 │   ├── main_routes.py               (MCPT table + proxy)
@@ -1945,25 +2023,26 @@ pause
 
 ## Build Order
 
-Build in this exact sequence — each layer depends on the one before:
+Build in this exact sequence. After each numbered step, push to GitHub with the `[MODULE-XX-COMPLETE]` tag and update `build_status.json`. Do not wait for Opus review before starting the next step — build ahead continuously.
 
-1. `config.py`, `data_init.py`, `nimbus_adapter.py`, `auth.py` — foundation
+1. Initialize repo state: create `build_status.json` (all modules `pending`), push. Then build: `config.py`, `data_init.py`, `nimbus_adapter.py`, `auth.py` — foundation
 2. `static/css/main.css` — complete Slate design system (ALL CSS variables from design_spec.md)
-3. `app.py`, `routes/__init__.py`, `templates/index.html`, `static/js/app.js` — shell with full layout, sidebar, header, boot sequence
-4. `routes/main_routes.py` + `static/js/mcpt-table.js` — Module 1 (highest value, confirms API works)
-5. `routes/dsl_routes.py` + `static/js/dsl-generator.js` — Module 3 (DSL generation, critical)
-6. `static/js/auth-dashboard.js` — Module 2 (uses data already loaded in Module 1)
-7. `routes/notification_routes.py` + `static/js/notifications.js` — Module 11
-8. `routes/admin_routes.py` + `static/js/admin.js` — Module 10 (email config needed for Module 12)
-9. `routes/admin_routes.py` email handlers — Module 12
-10. `routes/tasking_routes.py` + `static/js/tasking.js` — Module 4
-11. `routes/metrics_routes.py` (charging + BOE + DID) + `static/js/metrics.js` — Modules 5, 6, 7
-12. `routes/pal_routes.py` + `static/js/pal.js` — Modules 8, 9
-13. Export handlers woven into relevant routes — Module 13
-14. `static/js/guide-system.js` + `static/css/guide-system.css` — Module 14 (guide/demo/voiceover)
-15. `static/js/help-docs.js` + `static/js/help-content.js` — Module 15 (help documentation)
-16. `demo_audio_generator.py` — audio generation script (run after Module 14 is complete)
-17. `video_studio/` — Module 16 (full Video Studio pipeline — see `docs/video_studio_spec.md`)
+3. `app.py`, `routes/__init__.py`, `templates/index.html`, `static/js/app.js` — shell with full layout, sidebar, header, boot sequence → **push `[MODULE-00-COMPLETE] Foundation + shell`**
+4. `routes/main_routes.py` + `static/js/mcpt-table.js` — Module 1 → **push `[MODULE-01-COMPLETE]`**
+5. `routes/dsl_routes.py` + `static/js/dsl-generator.js` — Module 3 → **push `[MODULE-03-COMPLETE]`**
+6. `static/js/auth-dashboard.js` — Module 2 → **push `[MODULE-02-COMPLETE]`**
+7. `routes/notification_routes.py` + `static/js/notifications.js` — Module 11 → **push `[MODULE-11-COMPLETE]`**
+8. `routes/admin_routes.py` + `static/js/admin.js` — Module 10 → **push `[MODULE-10-COMPLETE]`**
+9. `routes/admin_routes.py` email handlers — Module 12 → **push `[MODULE-12-COMPLETE]`**
+10. `routes/tasking_routes.py` + `static/js/tasking.js` — Module 4 → **push `[MODULE-04-COMPLETE]`**
+11. `routes/metrics_routes.py` (charging + BOE + DID) + `static/js/metrics.js` — Modules 5, 6, 7 → **push `[MODULE-05-COMPLETE]`, `[MODULE-06-COMPLETE]`, `[MODULE-07-COMPLETE]`**
+12. `routes/pal_routes.py` + `static/js/pal.js` — Modules 8, 9 → **push `[MODULE-08-COMPLETE]`, `[MODULE-09-COMPLETE]`**
+13. Export handlers woven into relevant routes — Module 13 → **push `[MODULE-13-COMPLETE]`**
+14. `static/js/guide-system.js` + `static/css/guide-system.css` — Module 14 → **push `[MODULE-14-COMPLETE]`**
+15. `static/js/help-docs.js` + `static/js/help-content.js` — Module 15 → **push `[MODULE-15-COMPLETE]`**
+16. `demo_audio_generator.py` — audio generation script → included in Module 14 push
+17. `video_studio/` — Module 16 → **push `[MODULE-16-COMPLETE]`**
+18. **End-of-build review check**: fetch all files in `reviews/` from GitHub API. For any `STATUS: FAIL`, fix all listed issues and push `[MODULE-XX-FIXED]`. Poll each review file until it updates to `STATUS: PASS`. Then push final commit: **`[BUILD-COMPLETE] MCPT v0.2.0 — all 16 modules, all reviews passed`**
 
 ---
 
