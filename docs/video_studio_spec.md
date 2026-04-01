@@ -494,7 +494,511 @@ MODULE_01 = ModuleDemo(
 )
 ```
 
-*(Define equivalent scene files for all 12 remaining modules following this exact pattern.)*
+---
+
+### Module 2 — Authorization Dashboard (scenes/module_02_auth_dashboard.py)
+
+```python
+MODULE_02 = ModuleDemo(
+    module_id='auth_dashboard',
+    module_title='Authorization Dashboard',
+    navigate_to='#nav-auth-dashboard',
+    overview=[
+        DemoStep(
+            narration="The Authorization Dashboard is your control center for the sign-off workflow. Every diagram in the current cycle is listed with its authorization status, authorizer name, and pending actions.",
+            target_selector='.auth-dashboard-grid',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="The progress bar at the top shows how many diagrams have been authorized out of the total in this cycle. Green segments mean authorized, amber means pending.",
+            target_selector='.auth-progress-bar',
+            action='hover', pause_after=2.0,
+            callout_label="Cycle Progress"
+        ),
+        DemoStep(
+            narration="Each row shows the authorizer name alongside the diagram. If a diagram is missing an authorizer, it appears in red — you can assign one directly from this view.",
+            target_selector='.auth-row-missing',
+            action='hover', pause_after=2.0,
+            callout_label="Missing Authorizer"
+        ),
+        DemoStep(
+            narration="The Send Authorization Email button generates a formatted email to the authorizer with the list of diagrams requiring their sign-off.",
+            target_selector='.send-auth-email-btn',
+            action='hover', pause_after=2.0,
+            callout_label="Send Email"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='email_authorizers', title='Sending Authorization Emails', icon='mail',
+            description='Generate and send authorization request emails to approvers',
+            steps=[
+                DemoStep(narration="Click Send Authorization Email to open the email composer. MCPT pre-populates it with the authorizer's name and their assigned diagrams.", target_selector='.send-auth-email-btn', action='click', pause_after=1.0, callout_label="Send Email"),
+                DemoStep(narration="The email preview shows exactly what the authorizer will receive — diagram titles, levels, and a direct link to each Nimbus page.", target_selector='.email-preview-panel', action='wait', pause_after=2.5),
+                DemoStep(narration="You can edit the message before sending, or click Send Now to dispatch it via the internal Exchange relay.", target_selector='.send-email-submit', action='hover', pause_after=1.5, callout_label="Dispatch via Exchange"),
+            ]
+        ),
+        SubDemo(
+            id='progress_tracking', title='Tracking Authorization Progress', icon='bar-chart-2',
+            description='Monitor which diagrams are authorized and which are still pending',
+            steps=[
+                DemoStep(narration="Filter by authorizer to see all diagrams assigned to a specific person. This is useful when following up on outstanding sign-offs.", target_selector='.auth-filter-by-person', action='click', pause_after=1.0, callout_label="Filter by Person"),
+                DemoStep(narration="The Status column transitions from Update Pending to Authorized once sign-off is recorded. This syncs from the MCPT Main Table in real time.", target_selector='.auth-status-pill', action='hover', pause_after=2.0),
+                DemoStep(narration="The Missing Authorization report at the bottom lists every diagram with no authorizer — one click sends a single bulk email to the TRB Chair.", target_selector='.missing-auth-section', action='hover', pause_after=2.0, callout_label="Missing Auth Report"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 3 — DSL File Generator (scenes/module_03_dsl_generator.py)
+
+```python
+MODULE_03 = ModuleDemo(
+    module_id='dsl_generator',
+    module_title='DSL File Generator',
+    navigate_to='#nav-dsl-generator',
+    overview=[
+        DemoStep(
+            narration="The DSL File Generator produces the batch promotion files required by TIBCO Nimbus. Every diagram in the authorized state is organized into category-specific DSL files and packaged into a single ZIP download.",
+            target_selector='.dsl-generator-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="MCPT generates five category files automatically — one for each diagram category defined in the Admin Panel. It also produces a separate per-authorizer file for each person who provided sign-off.",
+            target_selector='.dsl-file-list',
+            action='hover', pause_after=2.0,
+            callout_label="5 Category Files"
+        ),
+        DemoStep(
+            narration="Each DSL entry uses the DraftDSLID — not the GUID. These are different identifiers. The DraftDSLID is the value Nimbus needs to locate the specific batch file page.",
+            target_selector='.dsl-preview-table',
+            action='hover', pause_after=2.0,
+            callout_label="Uses DraftDSLID"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='download_zip', title='Downloading the DSL ZIP', icon='download',
+            description='Generate and download the complete DSL package',
+            steps=[
+                DemoStep(narration="Click Generate DSL Package to build all files for the current promotion date. The server assembles the ZIP from the current authorized diagrams.", target_selector='.generate-dsl-btn', action='click', pause_after=2.0, callout_label="Generate Package"),
+                DemoStep(narration="The file count summary shows how many entries went into each category file. Review it to confirm every authorized diagram is included.", target_selector='.dsl-summary-panel', action='wait', pause_after=2.0),
+                DemoStep(narration="Click Download ZIP to save the package to your desktop. The filename includes the promotion date so you can archive it for compliance.", target_selector='.download-dsl-zip-btn', action='click', pause_after=1.5, callout_label="Download ZIP"),
+            ]
+        ),
+        SubDemo(
+            id='category_files', title='Category File Structure', icon='folder',
+            description='Understand how diagrams are sorted into DSL category files',
+            steps=[
+                DemoStep(narration="Click any file in the preview panel to see its contents. Each line is one DSL entry — the DraftDSLID followed by the diagram level.", target_selector='.dsl-file-preview-btn:first-child', action='click', pause_after=1.0),
+                DemoStep(narration="The category assignment comes from the Diagram Category field in the MCPT Table. Changing a category there will move the diagram to a different DSL file on the next generation.", target_selector='.dsl-preview-content', action='wait', pause_after=2.5, callout_label="Category-Sorted Entries"),
+                DemoStep(narration="The per-authorizer files contain the same entries but organized by who authorized each diagram. These go to individual team members for their records.", target_selector='.dsl-per-auth-section', action='hover', pause_after=2.0, callout_label="Per-Authorizer Files"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 4 — Weekly Tasking Report (scenes/module_04_weekly_tasking.py)
+
+```python
+MODULE_04 = ModuleDemo(
+    module_id='weekly_tasking',
+    module_title='Weekly Tasking Report',
+    navigate_to='#nav-weekly-tasking',
+    overview=[
+        DemoStep(
+            narration="The Weekly Tasking Report replaces the shared Excel workbook where each team member records their weekly activities. Entries are submitted through MCPT and compiled into a consolidated director report.",
+            target_selector='.tasking-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="Each user sees their own entry form — diagram worked, hours, and description. The Director view shows every team member's entries side by side.",
+            target_selector='.tasking-my-entries',
+            action='hover', pause_after=2.0,
+            callout_label="Your Weekly Entries"
+        ),
+        DemoStep(
+            narration="At the end of each week, the Director or Admin exports the consolidated report to a Word document with one click.",
+            target_selector='.export-tasking-word-btn',
+            action='hover', pause_after=2.0,
+            callout_label="Word Export"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='submit_tasks', title='Submitting Weekly Tasks', icon='clipboard',
+            description='Record what you worked on this week',
+            steps=[
+                DemoStep(narration="Click Add Task Entry to open the entry form. Each entry covers one diagram or activity for the week.", target_selector='.add-task-btn', action='click', pause_after=0.8, callout_label="Add Entry"),
+                DemoStep(narration="Select the diagram from the dropdown — it lists all diagrams in the current cycle. Or type a free-text activity description for non-diagram work.", target_selector='#task-diagram-select', action='click', pause_after=1.0),
+                DemoStep(narration="Enter your hours and a brief description of the work performed. Click Save to submit.", target_selector='#task-hours-input', action='type', action_value='4.5', pause_after=0.5),
+                DemoStep(narration="Your entry appears in your personal task list immediately. You can edit or delete it until the Director locks the week.", target_selector='.tasking-my-entries', action='wait', pause_after=2.0),
+            ]
+        ),
+        SubDemo(
+            id='director_view', title='Director Consolidated View', icon='users',
+            description='See all team member entries in one place (Director/Admin only)',
+            steps=[
+                DemoStep(narration="Directors and Admins see a consolidated table with every team member's entries for the current week. Entries are grouped by person.", target_selector='.tasking-director-table', action='wait', pause_after=2.0, callout_label="All Team Entries"),
+                DemoStep(narration="Use the week selector to view any previous week. Historical entries are read-only.", target_selector='.tasking-week-selector', action='click', pause_after=1.0),
+                DemoStep(narration="The Export to Word button generates a formatted report suitable for the weekly status meeting.", target_selector='.export-tasking-word-btn', action='click', pause_after=2.0, callout_label="Export Report"),
+            ]
+        ),
+        SubDemo(
+            id='export_word', title='Exporting to Word', icon='file-text',
+            description='Generate the formatted Word document for the weekly status meeting',
+            steps=[
+                DemoStep(narration="Click Export to Word to generate the consolidated report. MCPT formats all entries into a standard template with section headers per team member.", target_selector='.export-tasking-word-btn', action='click', pause_after=2.0),
+                DemoStep(narration="The Word document downloads automatically. It includes the week date range, each person's entries, and a total hours summary.", target_selector='.tasking-panel', action='wait', pause_after=2.5, callout_label="Auto-Download"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 5 — Metrics: Charging (scenes/module_05_charging.py)
+
+```python
+MODULE_05 = ModuleDemo(
+    module_id='charging',
+    module_title='Metrics: Charging',
+    navigate_to='#nav-metrics-charging',
+    overview=[
+        DemoStep(
+            narration="The Charging module transforms a raw SAP labor export into a clean pivot table showing hours charged per employee per fiscal month. No manual formatting, no column mapping — just upload and analyze.",
+            target_selector='.charging-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="SAP data is cumulative — each pay period export includes all hours from the beginning of the year. MCPT automatically identifies the latest pay period and uses only those rows to avoid double-counting.",
+            target_selector='.charging-upload-zone',
+            action='hover', pause_after=2.5,
+            callout_label="Upload Any SAP Export"
+        ),
+        DemoStep(
+            narration="The pivot table shows Employee Full Name across rows and Fiscal Month across columns. Hours are summed per cell. It accepts any column order — MCPT detects columns by name, not position.",
+            target_selector='.charging-pivot-table',
+            action='hover', pause_after=2.0,
+            callout_label="Automatic Pivot"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='upload_sap', title='Uploading an SAP Report', icon='upload',
+            description='Import a raw SAP labor report and generate the charging pivot',
+            steps=[
+                DemoStep(narration="Click Choose File or drag your SAP export directly into the upload zone. MCPT accepts both .xlsx and .csv formats.", target_selector='.charging-upload-zone', action='click', pause_after=1.0, callout_label="Drag & Drop or Browse"),
+                DemoStep(narration="MCPT reads the header row to locate the required columns by name. It will work even if SAP changes the column order in a future export.", target_selector='.charging-column-map', action='wait', pause_after=2.0, callout_label="Header-Based Detection"),
+                DemoStep(narration="The pivot table generates instantly. Rows are team members, columns are fiscal months, values are hours. Grand totals appear in the right column.", target_selector='.charging-pivot-table', action='wait', pause_after=2.5),
+            ]
+        ),
+        SubDemo(
+            id='pivot_table', title='Reading the Charging Pivot', icon='grid',
+            description='Navigate and interpret the pivot table output',
+            steps=[
+                DemoStep(narration="Click any employee row to expand it and see their charge order breakdown. Each order gets its own sub-row with the total hours charged.", target_selector='.charging-row-expand', action='click', pause_after=1.5, callout_label="Expand for Detail"),
+                DemoStep(narration="The Export to Excel button downloads the pivot table in a format ready for the weekly status briefing.", target_selector='.charging-export-excel', action='click', pause_after=1.5, callout_label="Export to Excel"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 6 — Metrics: NimbusBOE (scenes/module_06_boe.py)
+
+```python
+MODULE_06 = ModuleDemo(
+    module_id='boe',
+    module_title='Metrics: NimbusBOE',
+    navigate_to='#nav-metrics-boe',
+    overview=[
+        DemoStep(
+            narration="The NimbusBOE module analyzes SAP labor data to show hours charged against the Nimbus tool effort. It filters to the NAT team charge order and summarizes by month and supplier.",
+            target_selector='.boe-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="Upload the CleanData sheet export from the NimbusBOE workbook, or a raw SAP export. MCPT detects the format automatically from the header row.",
+            target_selector='.boe-upload-zone',
+            action='hover', pause_after=2.0,
+            callout_label="Any Format Accepted"
+        ),
+        DemoStep(
+            narration="The BOE table shows monthly actuals against the authorized BOE hours. Variances are color-coded — green under budget, red over.",
+            target_selector='.boe-monthly-table',
+            action='hover', pause_after=2.0,
+            callout_label="Budget vs Actual"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='upload_boe', title='Uploading BOE Data', icon='upload-cloud',
+            description='Import SAP data and view the Nimbus BOE analysis',
+            steps=[
+                DemoStep(narration="Upload your SAP export to the BOE module. MCPT filters automatically to order 9L99G054 — only NAT team hours appear in the output.", target_selector='.boe-upload-zone', action='click', pause_after=1.0, callout_label="Auto-Filter to NAT Team"),
+                DemoStep(narration="Holiday, PTO, and UNP entries are excluded automatically. Only productive labor hours are included in the BOE calculation.", target_selector='.boe-monthly-table', action='wait', pause_after=2.5, callout_label="PTO/HOL Excluded"),
+                DemoStep(narration="The By Supplier tab breaks down the same data by labor category. This view is used for the monthly BOE briefing to the customer.", target_selector='.boe-by-supp-tab', action='click', pause_after=1.5, callout_label="By Supplier Tab"),
+            ]
+        ),
+        SubDemo(
+            id='boe_table', title='Reading the BOE Table', icon='table',
+            description='Understand the monthly BOE output columns and variance tracking',
+            steps=[
+                DemoStep(narration="Each month column shows the actual hours charged. The rightmost column shows the year-to-date total compared to the authorized BOE.", target_selector='.boe-monthly-table', action='hover', pause_after=2.0),
+                DemoStep(narration="Red cells indicate the month is over the authorized monthly rate. Hover any cell for a tooltip with the raw values.", target_selector='.boe-over-cell', action='hover', pause_after=2.0, callout_label="Over-Budget Alert"),
+                DemoStep(narration="Email the BOE summary to the TRB Chair with one click — MCPT pre-formats the message with the current month's actuals.", target_selector='.boe-email-btn', action='hover', pause_after=2.0, callout_label="Email TRB Chair"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 7 — Metrics: DID Working (scenes/module_07_did_working.py)
+
+```python
+MODULE_07 = ModuleDemo(
+    module_id='did_working',
+    module_title='Metrics: DID Working',
+    navigate_to='#nav-metrics-did',
+    overview=[
+        DemoStep(
+            narration="The DID Working module performs a compliance gap analysis across all government Data Item Descriptions. It identifies which DIDs appear in two or more contracts — flagging potential compliance gaps — and cross-references them against your document registry.",
+            target_selector='.did-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="Upload the Raw Data sheet from the DID Working workbook. MCPT detects all 24 columns by header name and performs the same gap analysis as the original VBA macro.",
+            target_selector='.did-upload-zone',
+            action='hover', pause_after=2.0,
+            callout_label="Upload Raw Data Sheet"
+        ),
+        DemoStep(
+            narration="Results are organized across four views: By Contract, By Function Area, By Platform, and Raw Data — the same four analysis tabs from the original workbook.",
+            target_selector='.did-tab-bar',
+            action='hover', pause_after=2.0,
+            callout_label="4 Analysis Views"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='upload_raw_data', title='Uploading DID Raw Data', icon='file-spreadsheet',
+            description='Import the Raw Data sheet and trigger the gap analysis',
+            steps=[
+                DemoStep(narration="Click Upload Raw Data and select the Raw Data sheet export from your DID Working workbook. Column positions do not matter — MCPT reads headers.", target_selector='.did-upload-zone', action='click', pause_after=1.0, callout_label="Header-Based Detection"),
+                DemoStep(narration="The gap analysis runs instantly. A DID is flagged as a gap if it appears in two or more contracts — that is the rule from the original DID Reporting Table.", target_selector='.did-gap-summary', action='wait', pause_after=2.5, callout_label="Gap = 2+ Contracts"),
+                DemoStep(narration="Gap items are highlighted in amber. Items that also appear in the document registry are marked with a blue checkmark.", target_selector='.did-gap-row', action='hover', pause_after=2.0, callout_label="In Doc Registry"),
+            ]
+        ),
+        SubDemo(
+            id='contract_view', title='By Contract View', icon='file-badge',
+            description='See DID gaps organized by contract',
+            steps=[
+                DemoStep(narration="The By Contract view shows each contract as a column and each DID as a row. Cells with two or more marks indicate a gap.", target_selector='.did-contract-pivot', action='wait', pause_after=2.5, callout_label="Contract × DID Matrix"),
+                DemoStep(narration="Click any DID row to see all contracts that reference it, the function area, and whether it is in the Nimbus doc registry.", target_selector='.did-row-expand', action='click', pause_after=1.5),
+            ]
+        ),
+        SubDemo(
+            id='function_view', title='By Function Area View', icon='layers',
+            description='Analyze DID gaps by engineering function area',
+            steps=[
+                DemoStep(narration="The By Function Area view groups DIDs under their FSC or functional area code. This is the view used for the weekly engineering process review.", target_selector='.did-function-tab', action='click', pause_after=1.0, callout_label="By Function Area"),
+                DemoStep(narration="Expand any function area to see its DID list with gap and registry status. Red counts mean open gaps that need attention.", target_selector='.did-function-expand', action='click', pause_after=1.5, callout_label="Expand Function Group"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 8 — PAL Checklist (scenes/module_08_pal_checklist.py)
+
+```python
+MODULE_08 = ModuleDemo(
+    module_id='pal_checklist',
+    module_title='PAL Checklist',
+    navigate_to='#nav-pal-checklist',
+    overview=[
+        DemoStep(
+            narration="The PAL Checklist is a 25-item interactive review checklist for verifying that all process model changes meet the NAT team's Program Approval List requirements before promotion.",
+            target_selector='.pal-checklist-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="Each checklist item has three states: complete, incomplete, and not applicable. Your progress is saved automatically and persists across browser sessions.",
+            target_selector='.pal-item-list',
+            action='hover', pause_after=2.0,
+            callout_label="25-Item Checklist"
+        ),
+        DemoStep(
+            narration="The progress bar at the top shows how many applicable items have been completed. Items marked N/A are excluded from the completion percentage.",
+            target_selector='.pal-progress-bar',
+            action='hover', pause_after=2.0,
+            callout_label="Completion Progress"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='complete_checklist', title='Working Through the Checklist', icon='check-circle',
+            description='Mark PAL items as complete, incomplete, or N/A',
+            steps=[
+                DemoStep(narration="Click any checklist item to mark it complete. The item turns green and the progress bar advances.", target_selector='.pal-item:first-child', action='click', pause_after=1.0),
+                DemoStep(narration="Click again to mark it incomplete — red. Click a third time to mark it N/A — grey and excluded from the progress count.", target_selector='.pal-item:first-child', action='click', pause_after=1.0),
+                DemoStep(narration="The Reset Checklist button clears all items back to incomplete. Use this when starting a new PAL review for the next promotion cycle.", target_selector='.pal-reset-btn', action='hover', pause_after=1.5, callout_label="Reset for New Cycle"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 9 — PAL Helper (scenes/module_09_pal_helper.py)
+
+```python
+MODULE_09 = ModuleDemo(
+    module_id='pal_helper',
+    module_title='PAL Helper',
+    navigate_to='#nav-pal-helper',
+    overview=[
+        DemoStep(
+            narration="The PAL Helper is a structured browser for PAL review documents organized by engineering discipline. Instead of searching SharePoint manually, you select your discipline and see all relevant PAL documents in one view.",
+            target_selector='.pal-helper-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="Twelve engineering disciplines are available, each with their own set of PAL documents linked to the correct SharePoint locations.",
+            target_selector='.pal-discipline-grid',
+            action='hover', pause_after=2.0,
+            callout_label="12 Disciplines"
+        ),
+        DemoStep(
+            narration="Click any document tile to open it directly in SharePoint. The links are managed through the Admin Panel and can be updated without a code change.",
+            target_selector='.pal-doc-tile:first-child',
+            action='hover', pause_after=2.0,
+            callout_label="Direct SharePoint Link"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='browse_disciplines', title='Browsing by Discipline', icon='book-open',
+            description='Find PAL documents for a specific engineering discipline',
+            steps=[
+                DemoStep(narration="Click a discipline card to expand it. All PAL documents for that discipline appear below as clickable tiles.", target_selector='.pal-discipline-card:nth-child(3)', action='click', pause_after=1.0, callout_label="Select Discipline"),
+                DemoStep(narration="Each document tile shows the document title and last-updated date. Click it to open directly in SharePoint — no searching, no navigating folder trees.", target_selector='.pal-doc-tile:first-child', action='hover', pause_after=1.5, callout_label="Click to Open in SharePoint"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 10 — Admin Panel (scenes/module_10_admin_panel.py)
+
+```python
+MODULE_10 = ModuleDemo(
+    module_id='admin_panel',
+    module_title='Admin Panel',
+    navigate_to='#nav-admin',
+    overview=[
+        DemoStep(
+            narration="The Admin Panel is the configuration hub for MCPT. Admins and Directors can manage users, dropdown values, email settings, and global system parameters — all without touching configuration files.",
+            target_selector='.admin-panel',
+            action='wait', pause_after=2.0
+        ),
+        DemoStep(
+            narration="The panel is divided into four tabs: Users, Dropdowns, Email Config, and System Settings. Each tab controls a different aspect of the application.",
+            target_selector='.admin-tab-bar',
+            action='hover', pause_after=2.0,
+            callout_label="4 Configuration Areas"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='manage_users', title='Managing Users', icon='users',
+            description='Add users, assign roles, and delegate admin access',
+            steps=[
+                DemoStep(narration="The Users tab lists every person who has accessed MCPT. Each user has a role — IC, Admin, or Director — that controls what they can see and edit.", target_selector='.admin-users-tab', action='click', pause_after=1.0),
+                DemoStep(narration="Click a user row to edit their role. Changes take effect on the user's next page load — no restart required.", target_selector='.admin-user-row:first-child', action='click', pause_after=1.0, callout_label="Edit Role"),
+                DemoStep(narration="The Delegate Access button lets an Admin temporarily grant another user elevated permissions — useful for coverage during vacations.", target_selector='.admin-delegate-btn', action='hover', pause_after=1.5, callout_label="Delegate Access"),
+            ]
+        ),
+        SubDemo(
+            id='system_settings', title='System Settings', icon='settings',
+            description='Configure TRB Chair, SAP charge order, and other global parameters',
+            steps=[
+                DemoStep(narration="The System Settings tab contains global parameters that affect the whole app. The TRB Chair field drives the authorization email footer and the Authorized by TRB Chair field.", target_selector='.admin-system-tab', action='click', pause_after=1.0),
+                DemoStep(narration="Update the TRB Chair name here when it changes. The new name will appear in all future authorization emails and exports immediately.", target_selector='#trb-chair-input', action='type', action_value='Smith, Jane', pause_after=0.5, callout_label="TRB Chair Field"),
+                DemoStep(narration="The SAP Charge Order field sets the order number used to filter BOE reports. This defaults to 9L99G054 for the NAT team.", target_selector='#sap-charge-order-input', action='hover', pause_after=1.5, callout_label="SAP Charge Order"),
+            ]
+        ),
+        SubDemo(
+            id='email_config', title='Email Configuration', icon='mail',
+            description='Configure the SMTP relay settings for authorization emails',
+            steps=[
+                DemoStep(narration="The Email Config tab sets the SMTP relay address and sender name. MCPT routes all email through your internal Exchange relay — no external email service required.", target_selector='.admin-email-tab', action='click', pause_after=1.0),
+                DemoStep(narration="Enter the SMTP host provided by your IT team. MCPT will test the connection when you save.", target_selector='#smtp-host-input', action='hover', pause_after=1.5, callout_label="Internal Exchange Relay"),
+                DemoStep(narration="Click Test Connection to verify the relay accepts messages from the MCPT server IP. A green checkmark confirms it is whitelisted.", target_selector='.smtp-test-btn', action='click', pause_after=2.0, callout_label="Test Connection"),
+            ]
+        ),
+    ]
+)
+```
+
+---
+
+### Module 11 — Notifications (scenes/module_11_notifications.py)
+
+```python
+MODULE_11 = ModuleDemo(
+    module_id='notifications',
+    module_title='In-App Notifications',
+    navigate_to='#nav-notifications',
+    overview=[
+        DemoStep(
+            narration="The notification system keeps every team member informed of activity in MCPT without email. A bell icon in the header shows unread count and updates every 60 seconds.",
+            target_selector='#notification-bell',
+            action='hover', pause_after=2.0,
+            callout_label="Live Badge"
+        ),
+        DemoStep(
+            narration="Click the bell to open the notification feed. Notifications cover status changes, authorization completions, new diagram entries, and Admin announcements.",
+            target_selector='#notification-bell',
+            action='click', pause_after=1.0
+        ),
+        DemoStep(
+            narration="Each notification shows what changed, who made the change, and when. Click any notification to jump directly to the affected record in the MCPT Table.",
+            target_selector='.notification-feed',
+            action='hover', pause_after=2.0,
+            callout_label="Click to Navigate"
+        ),
+    ],
+    sub_demos=[
+        SubDemo(
+            id='notification_feed', title='Reading the Notification Feed', icon='bell',
+            description='View and act on in-app notifications',
+            steps=[
+                DemoStep(narration="Open the bell to see your feed. Unread notifications have a blue left border and a bold title. Read notifications are muted grey.", target_selector='#notification-bell', action='click', pause_after=1.0),
+                DemoStep(narration="Click any notification to mark it as read and navigate to the related record. The badge count decrements immediately.", target_selector='.notification-item.unread', action='click', pause_after=1.5, callout_label="Click to Read + Navigate"),
+                DemoStep(narration="Mark All as Read clears all notifications at once. The badge disappears from the bell icon.", target_selector='.mark-all-read-btn', action='click', pause_after=1.0, callout_label="Clear All"),
+            ]
+        ),
+    ]
+)
+```
 
 ---
 
@@ -891,7 +1395,395 @@ class PromotionCycle(Scene):
         self.play(FadeOut(Group(*self.mobjects), shift=UP * 0.3), run_time=0.8)
 ```
 
-*(Define equivalent Manim scenes for GUID/DSLID model, three-state booleans, authorization workflow, and DSL file structure.)*
+---
+
+### GUID / DSLID Model (manim_scenes/guid_dslid_model.py)
+
+```python
+from manim import *
+
+class GUIDDSLIDModel(Scene):
+    """
+    60-second animated diagram explaining the three-identifier model:
+    GUID (concept key), DraftDSLID (Draft page), MasterDSLID (Master page).
+    Shows how they relate and why they are different.
+    """
+    def construct(self):
+        BG      = "#0F172A"
+        TEXT    = "#F1F5F9"
+        MUTED   = "#94A3B8"
+        ACCENT  = "#3B82F6"
+        DRAFT   = "#6366F1"
+        MASTER  = "#10B981"
+        AMBER   = "#F59E0B"
+
+        self.camera.background_color = BG
+
+        # ── Title
+        title = Text("Three Identifiers — One Diagram",
+                     color=TEXT, font="Inter", font_size=28, weight=BOLD)
+        title.to_edge(UP, buff=0.6)
+        self.play(FadeIn(title, shift=DOWN * 0.2), run_time=0.6)
+        self.wait(0.3)
+
+        # ── Central GUID box
+        guid_box = RoundedRectangle(
+            corner_radius=0.15, width=4.5, height=1.2,
+            color=ACCENT, fill_opacity=0.12, stroke_width=2.5
+        )
+        guid_label = Text("GUID", color=ACCENT, font="Inter",
+                          font_size=18, weight=SEMIBOLD)
+        guid_sub = Text("Concept-level key\nShared by Draft & Master",
+                        color=MUTED, font="Inter", font_size=12)
+        guid_label.move_to(guid_box.get_top() + DOWN * 0.35)
+        guid_sub.next_to(guid_label, DOWN, buff=0.08)
+        guid_group = VGroup(guid_box, guid_label, guid_sub)
+        guid_group.move_to(ORIGIN)
+
+        self.play(FadeIn(guid_group, scale=0.9), run_time=0.7)
+        self.wait(0.4)
+
+        # ── Narration text
+        narration_1 = Text(
+            "The GUID is the permanent concept-level identifier —",
+            color=MUTED, font="Inter", font_size=13
+        ).to_edge(DOWN, buff=1.8)
+        narration_2 = Text(
+            "the same value in both the Draft and the Master diagram.",
+            color=MUTED, font="Inter", font_size=13
+        ).next_to(narration_1, DOWN, buff=0.1)
+        self.play(FadeIn(narration_1), FadeIn(narration_2), run_time=0.6)
+        self.wait(1.5)
+        self.play(FadeOut(narration_1), FadeOut(narration_2))
+
+        # ── Draft node
+        draft_box = RoundedRectangle(
+            corner_radius=0.15, width=3.8, height=1.1,
+            color=DRAFT, fill_opacity=0.12, stroke_width=2.0
+        )
+        draft_label = Text("DraftDSLID", color=DRAFT, font="Inter",
+                           font_size=16, weight=SEMIBOLD)
+        draft_sub = Text("Draft Nimbus page\n(JSON key: \"DSL UUID\")",
+                         color=MUTED, font="Inter", font_size=11)
+        draft_label.move_to(draft_box.get_top() + DOWN * 0.3)
+        draft_sub.next_to(draft_label, DOWN, buff=0.08)
+        draft_group = VGroup(draft_box, draft_label, draft_sub)
+        draft_group.move_to(LEFT * 3.5 + DOWN * 1.8)
+
+        # ── Master node
+        master_box = RoundedRectangle(
+            corner_radius=0.15, width=3.8, height=1.1,
+            color=MASTER, fill_opacity=0.12, stroke_width=2.0
+        )
+        master_label = Text("MasterDSLID", color=MASTER, font="Inter",
+                            font_size=16, weight=SEMIBOLD)
+        master_sub = Text("Master Nimbus page\n(different Nimbus server)",
+                          color=MUTED, font="Inter", font_size=11)
+        master_label.move_to(master_box.get_top() + DOWN * 0.3)
+        master_sub.next_to(master_label, DOWN, buff=0.08)
+        master_group = VGroup(master_box, master_label, master_sub)
+        master_group.move_to(RIGHT * 3.5 + DOWN * 1.8)
+
+        # ── Arrows from GUID to Draft/Master
+        arrow_draft = Arrow(
+            guid_group.get_bottom(), draft_group.get_top(),
+            color=DRAFT, buff=0.1, stroke_width=2
+        )
+        arrow_master = Arrow(
+            guid_group.get_bottom(), master_group.get_top(),
+            color=MASTER, buff=0.1, stroke_width=2
+        )
+
+        self.play(
+            FadeIn(draft_group, shift=UP * 0.3),
+            GrowArrow(arrow_draft),
+            run_time=0.9
+        )
+        self.wait(0.2)
+        self.play(
+            FadeIn(master_group, shift=UP * 0.3),
+            GrowArrow(arrow_master),
+            run_time=0.9
+        )
+        self.wait(0.4)
+
+        # ── Key distinction
+        narration_3 = Text(
+            "DraftDSLID and MasterDSLID are different — they point to",
+            color=MUTED, font="Inter", font_size=13
+        ).to_edge(DOWN, buff=1.8)
+        narration_4 = Text(
+            "different servers. Never mix them up in API or DSL file operations.",
+            color=AMBER, font="Inter", font_size=13
+        ).next_to(narration_3, DOWN, buff=0.1)
+        self.play(FadeIn(narration_3), FadeIn(narration_4))
+        self.wait(2.5)
+        self.play(FadeOut(narration_3), FadeOut(narration_4))
+
+        # ── Highlight the GUID as the DB key
+        highlight = SurroundingRectangle(guid_group, color=AMBER,
+                                         stroke_width=2.5, buff=0.1)
+        key_label = Text("Use GUID for all API and DB operations",
+                         color=AMBER, font="Inter", font_size=14)
+        key_label.next_to(highlight, UP, buff=0.15)
+        self.play(Create(highlight), FadeIn(key_label), run_time=0.8)
+        self.wait(2.0)
+        self.play(FadeOut(Group(*self.mobjects), shift=UP * 0.3), run_time=0.7)
+```
+
+---
+
+### Three-State Booleans (manim_scenes/bool_states.py)
+
+```python
+from manim import *
+
+class BoolStates(Scene):
+    """
+    25-second animation showing the three-state boolean system.
+    null → true → false → null cycle with color and icon transitions.
+    """
+    def construct(self):
+        BG      = "#0F172A"
+        TEXT    = "#F1F5F9"
+        MUTED   = "#94A3B8"
+        EMERALD = "#10B981"   # true
+        RED     = "#EF4444"   # false
+        SLATE   = "#475569"   # null
+
+        self.camera.background_color = BG
+
+        title = Text("Three-State Boolean Fields",
+                     color=TEXT, font="Inter", font_size=28, weight=BOLD)
+        title.to_edge(UP, buff=0.6)
+        self.play(FadeIn(title, shift=DOWN * 0.2), run_time=0.5)
+
+        # Three state circles side by side
+        states = [
+            ("null",  "—",  SLATE,   "Unknown / N/A"),
+            ("true",  "✓",  EMERALD, "Complete"),
+            ("false", "✗",  RED,     "Incomplete"),
+        ]
+
+        circles = VGroup()
+        for i, (state_id, symbol, color, label_text) in enumerate(states):
+            c = Circle(radius=0.9, color=color,
+                       fill_opacity=0.15, stroke_width=3)
+            sym = Text(symbol, color=color, font="Inter",
+                       font_size=36, weight=BOLD)
+            sym.move_to(c)
+            lbl = Text(label_text, color=MUTED, font="Inter", font_size=14)
+            lbl.next_to(c, DOWN, buff=0.3)
+            grp = VGroup(c, sym, lbl)
+            circles.add(grp)
+
+        circles.arrange(RIGHT, buff=1.5)
+        circles.move_to(ORIGIN + UP * 0.2)
+
+        for grp in circles:
+            self.play(GrowFromCenter(grp[0]), FadeIn(grp[1]), FadeIn(grp[2]),
+                      run_time=0.5)
+            self.wait(0.1)
+        self.wait(0.5)
+
+        # Cycle animation: highlight each state in turn
+        for i, (_, symbol, color, _) in enumerate(states):
+            highlight = SurroundingRectangle(circles[i], color=color,
+                                             stroke_width=2.5, buff=0.15)
+            self.play(Create(highlight), run_time=0.4)
+            self.wait(0.6)
+            self.play(FadeOut(highlight), run_time=0.3)
+
+        # Show click cycle
+        cycle_text = Text("Click to cycle:   —  →  ✓  →  ✗  →  —",
+                          color=MUTED, font="Inter", font_size=16)
+        cycle_text.to_edge(DOWN, buff=1.2)
+        self.play(FadeIn(cycle_text), run_time=0.5)
+        self.wait(1.5)
+
+        self.play(FadeOut(Group(*self.mobjects), shift=UP * 0.3), run_time=0.7)
+```
+
+---
+
+### Authorization Workflow (manim_scenes/auth_workflow.py)
+
+```python
+from manim import *
+
+class AuthWorkflow(Scene):
+    """
+    40-second animated flowchart of the authorization sign-off process:
+    Diagram added → TRB email sent → Authorizer signs off → Status updates → DSL generated.
+    """
+    def construct(self):
+        BG      = "#0F172A"
+        TEXT    = "#F1F5F9"
+        MUTED   = "#94A3B8"
+        ACCENT  = "#3B82F6"
+        DRAFT   = "#6366F1"
+        AMBER   = "#F59E0B"
+        EMERALD = "#10B981"
+
+        self.camera.background_color = BG
+
+        title = Text("Authorization Workflow",
+                     color=TEXT, font="Inter", font_size=28, weight=BOLD)
+        title.to_edge(UP, buff=0.5)
+        self.play(FadeIn(title, shift=DOWN * 0.2), run_time=0.5)
+        self.wait(0.2)
+
+        # Steps
+        step_data = [
+            ("1", "Diagram Added",     DRAFT,   "MCPT Table — status: Update Pending"),
+            ("2", "Email Sent",        AMBER,   "Authorization Dashboard → Send Email"),
+            ("3", "Authorizer Signs",  AMBER,   "Authorizer confirms in email or MCPT"),
+            ("4", "Status Updated",    EMERALD, "Authorization field → Authorized"),
+            ("5", "DSL Generated",     EMERALD, "DSL Generator → Download ZIP"),
+        ]
+
+        steps = VGroup()
+        for num, label, color, sub in step_data:
+            box = RoundedRectangle(corner_radius=0.12, width=4.2, height=0.85,
+                                   color=color, fill_opacity=0.12, stroke_width=2)
+            n   = Text(num, color=color, font="Inter", font_size=18, weight=BOLD)
+            n.move_to(box.get_left() + RIGHT * 0.4)
+            lbl = Text(label, color=TEXT, font="Inter", font_size=16, weight=SEMIBOLD)
+            lbl.next_to(n, RIGHT, buff=0.3)
+            sub_t = Text(sub, color=MUTED, font="Inter", font_size=11)
+            sub_t.next_to(box.get_bottom(), UP, buff=0.12).shift(RIGHT * 0.3)
+            grp = VGroup(box, n, lbl, sub_t)
+            steps.add(grp)
+
+        steps.arrange(DOWN, buff=0.25)
+        steps.move_to(ORIGIN + RIGHT * 0.5)
+
+        arrows = VGroup()
+        for i in range(len(steps) - 1):
+            a = Arrow(steps[i].get_bottom(), steps[i+1].get_top(),
+                      color=MUTED, buff=0.05, stroke_width=1.5)
+            arrows.add(a)
+
+        # Animate steps appearing one by one
+        for i, step in enumerate(steps):
+            self.play(FadeIn(step, shift=RIGHT * 0.2), run_time=0.45)
+            if i < len(arrows):
+                self.play(GrowArrow(arrows[i]), run_time=0.3)
+            self.wait(0.2)
+
+        self.wait(1.0)
+        self.play(FadeOut(Group(*self.mobjects), shift=UP * 0.3), run_time=0.7)
+```
+
+---
+
+### DSL File Structure (manim_scenes/dsl_file_structure.py)
+
+```python
+from manim import *
+
+class DSLFileStructure(Scene):
+    """
+    30-second animation showing a ZIP archive expanding into 5 category
+    DSL files plus per-authorizer files. Shows the two-file-type structure.
+    """
+    def construct(self):
+        BG      = "#0F172A"
+        TEXT    = "#F1F5F9"
+        MUTED   = "#94A3B8"
+        ACCENT  = "#3B82F6"
+        AMBER   = "#F59E0B"
+        EMERALD = "#10B981"
+
+        self.camera.background_color = BG
+
+        title = Text("DSL Package Structure",
+                     color=TEXT, font="Inter", font_size=28, weight=BOLD)
+        title.to_edge(UP, buff=0.5)
+        self.play(FadeIn(title, shift=DOWN * 0.2), run_time=0.5)
+        self.wait(0.2)
+
+        # ZIP icon in center
+        zip_box = RoundedRectangle(corner_radius=0.2, width=2.5, height=1.4,
+                                   color=AMBER, fill_opacity=0.15, stroke_width=2.5)
+        zip_label = Text("MCPT_2026-04-01.zip", color=AMBER,
+                         font="Inter", font_size=14, weight=SEMIBOLD)
+        zip_label.move_to(zip_box)
+        zip_group = VGroup(zip_box, zip_label)
+        zip_group.move_to(UP * 1.8)
+
+        self.play(FadeIn(zip_group, scale=0.85), run_time=0.6)
+        self.wait(0.3)
+
+        # Category files (left column)
+        cat_labels = [
+            "PromotionEngineeringApproved.dsl",
+            "PromotionEngineeringNotApproved.dsl",
+            "ProcessEngineeringApproved.dsl",
+            "ProcessEngineeringNotApproved.dsl",
+            "Other.dsl",
+        ]
+        cat_boxes = VGroup()
+        for lbl in cat_labels:
+            b = RoundedRectangle(corner_radius=0.1, width=4.5, height=0.5,
+                                 color=ACCENT, fill_opacity=0.1, stroke_width=1.5)
+            t = Text(lbl, color=ACCENT, font="Inter", font_size=10)
+            t.move_to(b)
+            cat_boxes.add(VGroup(b, t))
+        cat_boxes.arrange(DOWN, buff=0.12)
+        cat_boxes.move_to(LEFT * 2.8 + DOWN * 1.0)
+
+        cat_title = Text("5 Category Files", color=ACCENT,
+                         font="Inter", font_size=13, weight=SEMIBOLD)
+        cat_title.next_to(cat_boxes, UP, buff=0.2)
+
+        # Per-authorizer files (right column)
+        auth_labels = [
+            "Smith_John.dsl",
+            "Jones_Mary.dsl",
+            "Williams_Bob.dsl",
+        ]
+        auth_boxes = VGroup()
+        for lbl in auth_labels:
+            b = RoundedRectangle(corner_radius=0.1, width=3.0, height=0.5,
+                                 color=EMERALD, fill_opacity=0.1, stroke_width=1.5)
+            t = Text(lbl, color=EMERALD, font="Inter", font_size=10)
+            t.move_to(b)
+            auth_boxes.add(VGroup(b, t))
+        auth_boxes.arrange(DOWN, buff=0.12)
+        auth_boxes.move_to(RIGHT * 3.0 + DOWN * 1.0)
+
+        auth_title = Text("Per-Authorizer Files", color=EMERALD,
+                          font="Inter", font_size=13, weight=SEMIBOLD)
+        auth_title.next_to(auth_boxes, UP, buff=0.2)
+
+        # Arrows from ZIP
+        arrow_cat = Arrow(zip_group.get_bottom(), cat_boxes.get_top(),
+                          color=ACCENT, buff=0.1, stroke_width=2)
+        arrow_auth = Arrow(zip_group.get_bottom(), auth_boxes.get_top(),
+                           color=EMERALD, buff=0.1, stroke_width=2)
+
+        self.play(
+            GrowArrow(arrow_cat),
+            FadeIn(cat_title), FadeIn(cat_boxes, shift=UP * 0.2),
+            run_time=0.9
+        )
+        self.wait(0.3)
+        self.play(
+            GrowArrow(arrow_auth),
+            FadeIn(auth_title), FadeIn(auth_boxes, shift=UP * 0.2),
+            run_time=0.9
+        )
+        self.wait(1.0)
+
+        # Highlight the DraftDSLID rule
+        note = Text("Each entry = DraftDSLID — NOT the GUID",
+                    color=AMBER, font="Inter", font_size=14)
+        note.to_edge(DOWN, buff=0.6)
+        self.play(FadeIn(note, scale=0.9), run_time=0.5)
+        self.wait(2.0)
+        self.play(FadeOut(Group(*self.mobjects), shift=UP * 0.3), run_time=0.7)
+```
 
 ---
 
