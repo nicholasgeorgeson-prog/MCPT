@@ -47,6 +47,7 @@
 - **Last Promotion Date**: String `"12/16/2025"` (MM/DD/YYYY)
 - **`/get-mcpt` returns ALL rows** — no server-side filters; apply promotion date filter client-side
 - **JSON keys have spaces/special chars** — use bracket notation in JS: `row["DSL UUID"]`, `row["SP Folder Created"]`
+- **TRB Chair**: Currently `"Jamie Dunham"` — admin-editable in Admin Panel → System Settings. Drives `"Authorized by Eng Process TRB Chair"` field. Dev team needs to support this as a backend config parameter.
 - **SAP charge order**: `9L99G054` (NAT team, admin-editable)
 - **Nimbus EOL**: September 1, 2025 — all Nimbus code behind `nimbus_adapter.py` abstraction
 

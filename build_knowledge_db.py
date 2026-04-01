@@ -796,6 +796,32 @@ Build order recommendation:
         "tags": "timeline, 4-weeks, backend-separate, frontend-only, build-order",
         "source": "preflight-q26"
     },
+    # ─── ADMIN SETTINGS ─────────────────────────────────────────────────────
+    {
+        "category": "business-rules",
+        "title": "TRB Chair — admin-editable, currently Jamie Dunham",
+        "content": """The Engineering Process TRB Chair name is an admin-configurable setting in MCPT.
+
+Current value: "Jamie Dunham"
+Location: Admin Panel → System Settings → TRB Chair Name
+
+This value is used for:
+1. The "Authorized by Eng Process TRB Chair" column in /get-mcpt output
+   (determined by backend SQL: User = <TRB_chair> AND SignOffStatus = 'Signed Off')
+2. Per-authorizer DSL file for the TRB Chair in the DSL Generator
+3. Authorization Dashboard display — TRB Chair sign-off status column
+
+When the TRB Chair changes:
+- Admin updates the value in MCPT Admin Panel
+- MCPT stores new value in local config (notifications.db or config.py constant)
+- MCPT must also notify dev team to update backend SQL config parameter
+  (pending dev team feature: support trb_chair parameter on /get-mcpt so the
+   value can be passed dynamically without a backend redeploy)
+
+MCPT local config key: trb_chair_name (string, default: "Jamie Dunham")""",
+        "tags": "trb-chair, admin-settings, jamie-dunham, authorized-by-trb, configurable",
+        "source": "user-confirmed-2026-04-01"
+    },
     # ─── API CONTRACT CONFIRMED (2026-04-01) ────────────────────────────────
     {
         "category": "api-contract",

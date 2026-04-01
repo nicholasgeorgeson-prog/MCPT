@@ -346,7 +346,7 @@ The query WHERE: `WHERE d.GUID IN (SELECT DiagramGUID FROM Tracker)` — only re
 **Multiple Occurrences logic**: A diagram can appear multiple times in Tracker (different promotion cycles). The `Multiple Occurrences` field = 'Yes' if count > 1 for the same DiagramGUID.
 
 **Placeholders in SQL** (dev team will resolve before production):
-- `<TRB_chair>` — the username of the Engineering Process TRB Chair authorizer
+- `<TRB_chair>` — currently **`"Jamie Dunham"`**. Admin-editable in MCPT Admin Panel → System Settings. Dev team must support passing this as a config parameter to avoid hardcoding it in the SQL. See `docs/build_prompt.md` — Admin Panel section.
 - `<draft_url_sql>` — Draft URL prefix (resolves to `https://nimbusweb.../0:9820E23DD3204072819C50B7A2E57093.`)
 - `<master_url_sql>` — Master URL prefix (resolves to `https://nimbusweb.../0:ED910D9C5F0C4F8491F8FD10A0C5695B.`)
 

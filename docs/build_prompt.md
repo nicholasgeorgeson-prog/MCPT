@@ -570,10 +570,11 @@ GET  /api/pal/documents/<discipline>   → documents for specific discipline
 - Add new cycle (requires Admin)
 - Mark cycle as closed (archived)
 
-#### System
+#### System Settings
 - Current version display
 - "Check for updates" (future: GitHub-based update pull)
 - Database health status
+- **TRB Chair name** — display name of the Engineering Process TRB Chair (default: `"Jamie Dunham"`). Used to determine `"Authorized by Eng Process TRB Chair"` column logic. When changed, MCPT must notify the dev team to update the `<TRB_chair>` parameter in the backend SQL config. Stored in MCPT local config. A pending dev team request: support a `trb_chair` parameter on `/get-mcpt` so MCPT can pass this value dynamically instead of requiring a backend redeploy when the chair changes.
 
 ### Flask Routes
 
