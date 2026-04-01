@@ -30,7 +30,7 @@ Keep a running checklist of all 13 modules. Ensure Ruflo completes each fully �
 
 ---
 
-## The 13 Modules — Completion Checklist
+## The 15 Modules — Completion Checklist
 
 | # | Module | Key Deliverable |
 |---|--------|-----------------|
@@ -47,6 +47,33 @@ Keep a running checklist of all 13 modules. Ensure Ruflo completes each fully �
 | 11 | Notifications | Bell icon, 60s poll, feed, read/unread |
 | 12 | Email Automation | 3 email types (status, missing auth, per-authorizer) |
 | 13 | Export | Excel, Word, HTML, DSL ZIP |
+| 14 | Guide & Demo System | guide-system.js, demo beacon, voiceovers, all 13 module demos |
+| 15 | Help & Documentation | help-docs.js, complete content for all navigation items |
+
+**Plus:** `demo_audio_generator.py` (standalone script, not a Flask module but required)
+
+---
+
+## Design Standard — Enforce This Across Every File
+
+MCPT must achieve "Apple for enterprise" polish. This is **not** optional styling — it is a core requirement equal in weight to functional correctness. The design spec is in `docs/design_spec.md`.
+
+**Design violations that require correction:**
+- Any CSS that uses hex color codes instead of the CSS custom properties defined in design_spec.md
+- Any `transition: none` or missing transition on an interactive element
+- Any hardcoded font-size values (use `var(--font-*)` variables)
+- Any hardcoded spacing values (use `var(--sp-*)` variables)
+- Any `style.display = 'none/block'` on module sections (must use classList)
+- Missing hover, focus, or active states on buttons, links, or clickable elements
+- Status pills that use wrong colors (Draft ≠ indigo → flag it)
+- Three-state booleans that use wrong colors (true ≠ emerald → flag it)
+- Missing reduced-motion media query implementation
+
+**What you do NOT need to flag:**
+- Minor visual preferences (button border-radius pixel differences, etc.)
+- Whether Ruflo chose to use flexbox vs grid for a layout
+- Exact icon choice for sidebar navigation items
+- Minor wording differences in help content
 
 ---
 
@@ -168,6 +195,34 @@ Different users may have different column orders in their SAP exports, DID repor
 - [ ] Word export uses `python-docx`
 - [ ] DSL ZIP is the same output as Module 3
 
+### Module 14 — Guide & Demo System
+- [ ] Help beacon present: fixed bottom-right, 44px blue circle, pulsing animation
+- [ ] F1 key toggles help panel (in addition to beacon click)
+- [ ] Demo scenes defined for all 13 functional modules (not just some of them)
+- [ ] Each demo section has at minimum 4 scenes with narration text
+- [ ] Sub-demos defined for Module 1 (add_diagram, inline_editing, filtering at minimum)
+- [ ] Audio fallback chain implemented: MP3 → Web Speech API → silent timer
+- [ ] Demo bar appears at bottom when demo is playing (stop button, speed control)
+- [ ] `demo_audio_generator.py` uses edge-tts with `en-US-AvaNeural` voice
+- [ ] Manifest JSON written to `static/audio/demo/manifest.json`
+- [ ] Guide system uses "Slate" design language — NOT AEGIS gold/cream aesthetic
+
+### Module 15 — Help & Documentation
+- [ ] Help documentation has content for ALL navigation sections (no placeholder "Coming soon" articles)
+- [ ] GUID vs DSL ID article exists and is comprehensive
+- [ ] Complete Column Reference article covers all 49 API fields
+- [ ] All 25 PAL checklist items documented in their own reference article
+- [ ] Help search is functional (real-time, keyboard navigable)
+- [ ] "Watch Demo" button in help panel launches the relevant module demo
+
+### demo_audio_generator.py
+- [ ] Standalone script (NOT imported by Flask app)
+- [ ] Reads narration text from guide-system.js or a companion JSON
+- [ ] Generates MP3s with edge-tts primary, pyttsx3 fallback
+- [ ] Writes `manifest.json` with hash, size, text per file
+- [ ] `--force` flag to regenerate all, `--section` for one section
+- [ ] Does not overwrite existing valid files without `--force`
+
 ---
 
 ## Common Ruflo Failure Modes to Watch For
@@ -196,6 +251,18 @@ so header-name detection is the only acceptable approach throughout the entire a
 
 ### Flask Dev Server
 Ruflo may write `app.run(debug=True)` in `app.py`. This must be `waitress.serve(app, host='0.0.0.0', port=5060, threads=8)` in production mode.
+
+### AEGIS Design Bleed-Through
+Ruflo has seen the AEGIS codebase and may unconsciously copy its warm cream/gold design (`#f5f1ea` backgrounds, `#D6A84A` gold accents). MCPT uses the "Slate" design system — pure white backgrounds, blue accents (`#2563EB`). If you see warm cream or gold colors in MCPT CSS, flag it.
+
+### Incomplete Guide Content
+Ruflo may write guide sections for the first few modules and then stub the rest with empty `scenes: []` arrays. All 13 functional modules must have real demo content. Flag any empty or near-empty scenes arrays.
+
+### Missing Help Articles
+Ruflo may generate the help navigation structure but leave content articles as empty objects or with placeholder text like "Documentation coming soon." Every help article must have real content. Flag any article shorter than 100 words.
+
+### Generic Styling (No Design System)
+Ruflo may write CSS with hardcoded hex values like `background: #2563eb` instead of `background: var(--accent)`. While these produce the same visual result, hardcoded values break dark mode and theming. Flag hardcoded color values that should be CSS custom properties.
 
 ### Missing Encoding
 Ruflo may write `open(filepath, 'r')` without encoding. Every `open()` call must have `encoding='utf-8', errors='replace'`.

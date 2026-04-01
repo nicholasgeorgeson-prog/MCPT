@@ -65,18 +65,25 @@
 4. Weekly Tasking Report — per-user entry + director consolidated view + Word export
 5. Metrics: Charging — SAP ingest, smart column detection, pivot table
 6. Metrics: NimbusBOE — SAP BOE ingest, filter by order#, BOE table
-7. Metrics: DID Working — government document tracker
+7. Metrics: DID Working — DID gap analysis, 4 pivot views (Contract/Function/Platform/Raw)
 8. PAL Checklist — 25-item interactive review checklist
 9. PAL Helper — SharePoint PAL document browser by discipline
 10. Admin Panel — users, dropdowns, email config, SAP settings
 11. In-App Notifications — bell icon, feed, 60-second poll
 12. Email Automation — SMTP; 3 email types (status, missing auth, per-authorizer)
 13. Export — Excel, Word, HTML, DSL ZIP
+14. Guide & Demo System — interactive demos with MP3 voiceovers (edge-tts) for all 13 modules, help beacon, spotlight tours
+15. Help & Documentation — complete in-app documentation for every module, searchable, with "Watch Demo" integration
+
+**Design Standard**: "Slate" design language (docs/design_spec.md) — "Apple for enterprise" polish. Same level of attention to detail as AEGIS or higher. Own visual identity: cool white, blue accent (#2563EB), promotion cycle status colors (indigo/amber/emerald). NOT AEGIS warm/gold.
 
 ## Key Files
 | File | Purpose |
 |---|---|
 | `docs/build_prompt.md` | Complete build specification — full detail on every module |
+| `docs/ruflo_build_prompt.md` | Ruflo code generation prompt (Modules 1-15, design system, all specs) |
+| `docs/opus_supervisor_prompt.md` | Opus supervisor prompt (correctness criteria, failure modes, intervention) |
+| `docs/design_spec.md` | Complete "Slate" design system — CSS variables, components, typography |
 | `docs/architecture_decisions.md` | All architectural decisions with rationale |
 | `docs/developer_questions_email.md` | Email to send to backend dev team |
 | `docs/preflight_qa.md` | All 43 pre-flight Q&A pairs (complete record) |

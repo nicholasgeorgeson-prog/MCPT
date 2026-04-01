@@ -22,6 +22,30 @@ You are building **MCPT** (Model Change Package Tracker), a Flask web applicatio
 
 ---
 
+## Design Standard — "Apple for Enterprise"
+
+**Read `docs/design_spec.md` before writing a single line of CSS or HTML.**
+
+MCPT must achieve the same level of visual craft and attention to detail as a premium consumer software product — applied to an enterprise engineering tool. This is not optional polish added at the end. It is a core requirement equal in weight to functional correctness.
+
+**What this means in practice:**
+
+| Quality | What it looks like in MCPT |
+|---------|---------------------------|
+| Simple surface | The 49-field data model, three-identifier GUID system, and SQL complexity are completely invisible to the user. They see a clean table and click to edit. |
+| Purposeful motion | Every state change has a transition. Nothing jumps. Nothing flickers. Hover, focus, press, open, close — all animated at 120–300ms ease-out. |
+| Status at a glance | Promotion cycle state (Draft/Authorized/Master) is color-coded consistently in every view. A user should never have to read text to understand status. |
+| Consistent typography | Every label, heading, value, and placeholder uses the defined type scale. No rogue font-sizes, no unstyled text. |
+| World-class data grid | The MCPT Main Table is the hero of the app. It must support: virtual scroll, sticky headers, sticky first column, column resize, inline edit with optimistic updates, sort, filter, and density toggle. |
+| In-app expertise | The guide system, demos, and help docs are as important as the functional modules. A new user should be able to learn the entire app without leaving it. |
+
+**Visual Identity: "Slate" — NOT AEGIS**
+MCPT uses its own design language. Cool white surfaces, confident blue accent (`#2563EB`), the promotion cycle status colors (indigo/amber/emerald), Inter typography. Do not import or copy AEGIS styles.
+
+**Design spec file**: `docs/design_spec.md` — contains every CSS variable, component spec, animation value, and layout constant. Implement all of it.
+
+---
+
 ## CRITICAL RULES — Read Before Writing a Single Line
 
 1. **All file `open()` calls**: `encoding='utf-8', errors='replace'`
@@ -1156,13 +1180,553 @@ GET /api/export/tasking-word    → delegates to tasking module
 
 ---
 
+---
+
+## Module 14 — Guide & Demo System (static/js/guide-system.js + static/css/guide-system.css)
+
+This module is a complete interactive guide, demo, and voiceover system.
+Every module in the app must have a corresponding demo with narrated scenes.
+Reference system: AEGIS guide-system.js (5,771 lines). MCPT must match or exceed this level.
+Design language: See `docs/design_spec.md` — "Slate" identity, NOT AEGIS warm/gold aesthetic.
+
+### Audio Generation (demo_audio_generator.py)
+
+```python
+# TTS Provider chain (identical to AEGIS):
+# 1. edge-tts (Microsoft Neural) — primary, highest quality
+# 2. pyttsx3 (system TTS) — offline fallback
+# Voice: en-US-AvaNeural (rate: -8% for demos, -5% for cinema)
+#
+# File naming: {section_id}__step{n}.mp3
+# Directories: static/audio/demo/ and static/audio/cinema/
+# Manifest: static/audio/demo/manifest.json and static/audio/cinema/manifest.json
+```
+
+Manifest structure (same as AEGIS):
+```json
+{
+  "version": "1.0",
+  "generated_by": "MCPT Demo Audio Generator",
+  "voice": "en-US-AvaNeural",
+  "rate": "-8%",
+  "sections": {
+    "mcpt_table": {
+      "steps": [
+        {"file": "mcpt_table__step0.mp3", "text": "...", "hash": "...", "size": 98640}
+      ]
+    }
+  }
+}
+```
+
+### Demo Content — ALL 13 Modules (complete narration scenes required)
+
+Build demo scenes for every section below. Each scene needs:
+- `target`: CSS selector for the spotlighted element
+- `narration`: Full sentence(s) for TTS — professional, informative tone
+- `duration`: milliseconds (6000–10000 depending on narration length)
+
+```javascript
+const MCPTGuide = {
+
+  sections: {
+
+    // Module 1 — MCPT Main Table
+    mcpt_table: {
+      id: 'mcpt_table',
+      title: 'MCPT Main Table',
+      description: 'The central hub — view and manage all diagrams in the current promotion cycle.',
+      icon: 'table-2',
+      scenes: [
+        { target: '#module-mcpt', narration: 'The MCPT Main Table is your central workspace. Every diagram going through the two-week promotion cycle appears here, with its current status and all tracking fields visible at a glance.', duration: 9000 },
+        { target: '.promotion-date-selector', narration: 'The promotion date selector in the header controls which two-week cycle you are viewing. All 49 fields in the table are filtered client-side — no round trip to the server.', duration: 8000 },
+        { target: '.mcpt-data-grid', narration: 'Each row represents one diagram. The Level column shows the diagram hierarchy number — count the dots plus one to find the level. Draft diagrams show a Draft Copy suffix.', duration: 9000 },
+        { target: '.bool-cell', narration: 'The checklist columns use a three-state system. A green checkmark means complete, a red X means incomplete, and a dash means not applicable or unknown. Click any cell to cycle through states.', duration: 9000 },
+        { target: '.add-row-btn', narration: 'To add a new diagram to the tracker, click the Add Row button. Fill in the required fields and the entry is immediately posted to the backend API.', duration: 7000 },
+        { target: '.inline-edit-cell', narration: 'Any editable field can be changed directly in the table. Click a cell to enter edit mode — your change is sent to the API automatically when you click away or press Enter.', duration: 8000 },
+        { target: '.archive-btn', narration: 'Archiving a row removes it from the active view while preserving the record. Use this when a diagram has completed its promotion cycle.', duration: 7000 },
+      ],
+      subDemos: {
+        add_diagram: {
+          id: 'add_diagram', title: 'Adding a Diagram', icon: 'plus-circle',
+          description: 'Walk through adding a new diagram entry to the tracker',
+          scenes: [
+            { target: '.add-row-btn', narration: 'Click Add Row to open the new entry form. You will need the diagram GUID, which is the unique identifier used across both Draft and Master versions.', duration: 8000 },
+            { target: '#add-entry-modal', narration: 'Fill in the Diagram Category, Model Change Package Title, and your NAT Contact. The promotion date is pre-filled from your current cycle selection.', duration: 8000 },
+            { target: '#add-entry-submit', narration: 'When you submit, the entry is posted to the backend API and immediately appears in the table. The GUID becomes the permanent key for all future edits.', duration: 7000 },
+          ]
+        },
+        inline_editing: {
+          id: 'inline_editing', title: 'Inline Editing', icon: 'edit-2',
+          description: 'Edit any field directly in the table without opening a modal',
+          scenes: [
+            { target: '.editable-cell', narration: 'Editable cells show a pencil icon on hover. Click to enter edit mode — the cell transforms into an input field with a blue focus ring.', duration: 7000 },
+            { target: '.inline-edit-input', narration: 'Type your new value and press Enter to save, or Escape to cancel. The change is sent to the API using the exact field name from the API response — no conversion needed.', duration: 8000 },
+          ]
+        },
+        filtering: {
+          id: 'filtering', title: 'Filtering & Searching', icon: 'filter',
+          description: 'Find diagrams quickly with column filters and global search',
+          scenes: [
+            { target: '.table-search', narration: 'The global search box filters across all visible columns in real time. Start typing a diagram level number or category to narrow the list instantly.', duration: 7000 },
+            { target: '.column-filter', narration: 'Each column header has a filter dropdown. Use these to show only Draft or Master diagrams, filter by category, or find diagrams with incomplete checklist items.', duration: 8000 },
+          ]
+        },
+      }
+    },
+
+    // Module 2 — Authorization Dashboard
+    auth_dashboard: {
+      id: 'auth_dashboard',
+      title: 'Authorization Dashboard',
+      description: 'Track authorization sign-offs across the current promotion cycle.',
+      icon: 'shield-check',
+      scenes: [
+        { target: '#module-auth', narration: 'The Authorization Dashboard shows the sign-off status for every diagram in the current cycle. Authorization data is embedded in the main table response — no separate API call needed.', duration: 9000 },
+        { target: '.auth-progress-bar', narration: 'The progress bar at the top shows how many diagrams have received all required authorizations versus how many are still pending.', duration: 7000 },
+        { target: '.authorizer-group', narration: 'Diagrams are grouped by authorizer. You can see at a glance which approvers still have outstanding items, making follow-up straightforward.', duration: 8000 },
+        { target: '.send-auth-email-btn', narration: 'The Send Authorization Email button generates a personalized email to each authorizer listing their pending diagrams. Emails are sent through the internal Exchange relay.', duration: 8000 },
+      ],
+      subDemos: {
+        email_authorizers: {
+          id: 'email_authorizers', title: 'Emailing Authorizers', icon: 'mail',
+          description: 'Send authorization reminder emails to all pending approvers',
+          scenes: [
+            { target: '.auth-email-preview', narration: 'Before sending, preview the email that will go to each authorizer. It lists their specific diagrams with direct Nimbus links.', duration: 7000 },
+            { target: '.send-auth-email-btn', narration: 'Clicking Send dispatches emails to all authorizers with outstanding items. The status column updates to show emails have been sent.', duration: 7000 },
+          ]
+        }
+      }
+    },
+
+    // Module 3 — DSL Generator
+    dsl_generator: {
+      id: 'dsl_generator',
+      title: 'DSL File Generator',
+      description: 'Generate TIBCO Nimbus batch promotion files for the current cycle.',
+      icon: 'package',
+      scenes: [
+        { target: '#module-dsl', narration: 'The DSL Generator creates the batch files needed to promote diagrams in TIBCO Nimbus. Each file contains a list of diagram DSL IDs — not GUIDs — organized by promotion category.', duration: 9000 },
+        { target: '.dsl-category-list', narration: 'Five standard category files are always generated: Engineering Approved, Claimed, Unclaimed, NTBC, and PromoOnly. Each contains the Draft DSL IDs for diagrams in that category.', duration: 9000 },
+        { target: '.dsl-authorizer-files', narration: 'In addition to category files, individual files are generated per authorizer. These allow each approver to run their own Nimbus batch for the diagrams they have signed off on.', duration: 8000 },
+        { target: '.dsl-download-btn', narration: 'Click Download ZIP to get all files in a single archive. The ZIP contains all five category files plus one file per authorizer — ready to use directly in Nimbus.', duration: 8000 },
+      ],
+    },
+
+    // Module 4 — Weekly Tasking
+    weekly_tasking: {
+      id: 'weekly_tasking',
+      title: 'Weekly Tasking Report',
+      description: 'Track and report weekly engineering hours and tasks.',
+      icon: 'calendar',
+      scenes: [
+        { target: '#module-tasking', narration: 'The Weekly Tasking Report replaces the VBA workbook used to track what the team accomplished each week. Individual contributors fill in their own rows, while Directors see a consolidated view.', duration: 9000 },
+        { target: '.tasking-entry-form', narration: 'Enter your tasks for the week here. Each row represents one work item — describe what you did and the hours spent. The date is automatically set to the current week.', duration: 8000 },
+        { target: '.tasking-director-view', narration: 'Directors see all contributors grouped together. The total hours roll up per person per week, making resource tracking straightforward.', duration: 7000 },
+        { target: '.export-word-btn', narration: 'Export the tasking report to a formatted Word document for distribution or archive. The document matches the standard NAT team report format.', duration: 7000 },
+      ],
+    },
+
+    // Module 5 — Charging
+    metrics_charging: {
+      id: 'metrics_charging',
+      title: 'Charging Metrics',
+      description: 'Analyze SAP charging data with an interactive pivot table.',
+      icon: 'bar-chart-2',
+      scenes: [
+        { target: '#module-metrics-charging', narration: 'The Charging module processes SAP labor export files and builds a pivot table showing hours by employee across fiscal months. No column positions are assumed — the tool detects your report layout automatically.', duration: 10000 },
+        { target: '.sap-upload-area', narration: 'Drop your SAP export file here or click to browse. The tool accepts both raw SAP exports and pre-processed files. It will find the right columns regardless of their order.', duration: 8000 },
+        { target: '.charge-order-input', narration: 'The charge order filter is pre-filled with your team number. Only rows matching this order code are included. You can change it in Admin Settings to filter for a different team.', duration: 8000 },
+        { target: '.charging-pivot-table', narration: 'The pivot table shows Employee Full Name on the left with one column per fiscal month. Grand totals appear on the right. SAP data is cumulative per pay period, so the tool automatically uses only the most recent pay period to prevent double-counting.', duration: 11000 },
+        { target: '.export-charging-btn', narration: 'Export the pivot to a styled Excel file. The output has frozen headers, auto-sized columns, and totals formatting ready for distribution.', duration: 7000 },
+      ],
+    },
+
+    // Module 6 — NimbusBOE
+    metrics_boe: {
+      id: 'metrics_boe',
+      title: 'Nimbus BOE',
+      description: 'Year-to-date Basis of Estimate labor breakdown by supplemental code.',
+      icon: 'trending-up',
+      scenes: [
+        { target: '#module-metrics-boe', narration: 'The Nimbus BOE module shows year-to-date labor hours broken down by supplemental codes. This feeds the Basis of Estimate reporting sent to program leadership.', duration: 9000 },
+        { target: '.boe-upload-area', narration: 'Upload your SAP CleanData export or a raw SAP file. The tool detects which format you have uploaded and adjusts accordingly.', duration: 7000 },
+        { target: '.boe-monthly-tab', narration: 'The Monthly Summary tab shows Employee ID rows with columns for each fiscal month through the current month. Only the current fiscal year is shown.', duration: 8000 },
+        { target: '.boe-supp-tab', narration: 'The By Supplemental Code tab breaks down hours by Supplemental 2 codes per employee — showing exactly what work categories are being charged.', duration: 8000 },
+      ],
+    },
+
+    // Module 7 — DID Working
+    metrics_did: {
+      id: 'metrics_did',
+      title: 'DID Working',
+      description: 'Government Data Item Description gap analysis across contracts.',
+      icon: 'file-text',
+      scenes: [
+        { target: '#module-metrics-did', narration: 'The DID Working module tracks government Data Item Descriptions across your contracts. It identifies which DIDs appear in multiple contracts — a key compliance concern — and whether they are represented in your Nimbus process diagrams.', duration: 11000 },
+        { target: '.did-upload-area', narration: 'Upload the Raw Data sheet export from your DID Working workbook. The tool reads all 24 columns by header name, so the column order does not matter.', duration: 8000 },
+        { target: '.did-tabs', narration: 'Four analysis views are available: By Contract shows which contracts use each DID, By Function groups by engineering function, By Platform groups by aircraft platform, and Raw Data shows the full source table.', duration: 10000 },
+        { target: '.did-gap-highlight', narration: 'Rows highlighted in yellow are DID gaps — DIDs that appear in two or more contracts. These require special attention to ensure consistent application across programs.', duration: 8000 },
+        { target: '.did-in-nimbus', narration: 'The In Nimbus column shows whether the DID has a corresponding entry in the Document Registry. Green means it is tracked. This helps identify documentation coverage gaps.', duration: 8000 },
+      ],
+    },
+
+    // Module 8 — PAL Checklist
+    pal_checklist: {
+      id: 'pal_checklist',
+      title: 'PAL Checklist',
+      description: '25-item pre-authorization checklist for PAL manual reviews.',
+      icon: 'check-square',
+      scenes: [
+        { target: '#module-pal-checklist', narration: 'The PAL Checklist ensures every PAL manual meets the 25 standard quality criteria before going to the TRB for authorization. Your progress is saved per promotion cycle.', duration: 9000 },
+        { target: '.pal-progress-bar', narration: 'The progress bar shows how many of the 25 items you have checked off. Keep working until it reaches 25 out of 25 before submitting the document for authorization.', duration: 7000 },
+        { target: '.pal-checklist-item', narration: 'Click any item to mark it complete. Click the item text to expand it and add notes — useful for documenting specific decisions or exceptions.', duration: 7000 },
+        { target: '.pal-export-btn', narration: 'Export the completed checklist to a print-ready HTML page. Bring this to the TRB review as evidence that all quality criteria were verified.', duration: 7000 },
+      ],
+    },
+
+    // Module 9 — PAL Helper
+    pal_helper: {
+      id: 'pal_helper',
+      title: 'PAL Helper',
+      description: 'Browse PAL documents by engineering discipline.',
+      icon: 'book-open',
+      scenes: [
+        { target: '#module-pal-helper', narration: 'The PAL Helper gives quick access to PAL documents organized by engineering discipline. Rather than searching SharePoint manually, click a discipline to see all relevant PAL documents with direct links.', duration: 9000 },
+        { target: '.pal-discipline-grid', narration: 'Twelve disciplines are available: Vehicle Engineering, Test and Evaluation, Software, Systems Engineering, and more. Each card shows the discipline name and document count.', duration: 8000 },
+        { target: '.pal-document-list', narration: 'Click a discipline to expand its document list. Each item links directly to the SharePoint document. The path follows the standard AS-ENG PAL folder structure.', duration: 8000 },
+      ],
+    },
+
+    // Module 10 — Admin Panel
+    admin_panel: {
+      id: 'admin_panel',
+      title: 'Admin Panel',
+      description: 'Configure system settings, email, and team parameters.',
+      icon: 'settings',
+      scenes: [
+        { target: '#module-admin', narration: 'The Admin Panel controls all system-wide settings. This section is only visible to Admin and Director roles.', duration: 7000 },
+        { target: '.admin-system-settings', narration: 'System Settings contains the most important configuration fields: TRB Chair name, SAP charge order, email SMTP relay, and Nimbus server URL. These drive behavior across the entire app.', duration: 9000 },
+        { target: '#trb-chair-input', narration: 'The TRB Chair field controls whose name appears in authorization emails and the Authorization Dashboard header. Currently set to Jamie Dunham — update this when leadership changes.', duration: 8000 },
+        { target: '#sap-charge-order-input', narration: 'The SAP charge order filters the Charging and BOE modules. Only hours charged to this order number are included in the reports.', duration: 7000 },
+        { target: '.admin-dropdown-editor', narration: 'The dropdown editor lets you add, remove, and reorder the values that appear in table column filters and data entry forms — no code changes required.', duration: 8000 },
+      ],
+    },
+
+  } // end sections
+}; // end MCPTGuide
+```
+
+### Guide System Architecture (static/js/guide-system.js)
+
+Build a complete guide system equivalent to AEGIS guide-system.js. Key components:
+
+**MCPTGuide object** — the single global guide controller:
+```javascript
+const MCPTGuide = {
+  config: {
+    beaconZIndex: 150000,
+    spotlightZIndex: 149000,
+    panelZIndex: 149500,
+    demoBarZIndex: 149800,
+    stepDuration: 7000,  // default ms per step
+  },
+  state: { initialized, panelOpen, demoPlaying, currentSection },
+  narration: { enabled, volume, manifest, audioElement },
+  sections: { /* all sections above */ }
+};
+```
+
+**Beacon**: Fixed bottom-right, 44px circle, `--accent` blue, white "?" icon.
+Subtle radial pulse animation every 3 seconds. F1 key toggles help panel.
+
+**Spotlight overlay**: Semi-transparent overlay (`rgba(15,23,42,0.7)`) with CSS box-shadow cutout around target element. 400ms ease-out animate in/out. Smooth repositioning.
+
+**Help Panel**: 380px right-side panel, slides from right. Sections: description, key actions, "Watch Demo" CTA, "Full Documentation" link, pro tips. Same structure as AEGIS but Slate design language.
+
+**Demo bar** (while playing): Minimal strip at bottom — demo name, step counter, ■ stop, speed selector (0.75x 1x 1.5x 2x), volume control.
+
+**Audio fallback chain**: pre-generated MP3 → Web Speech API → silent timer (identical to AEGIS).
+
+**Sub-demo picker**: When "Watch Demo" is clicked from a section with multiple sub-demos, show a modal grid of sub-demo cards. Each card: icon, title, description, duration estimate.
+
+### Audio Generator (demo_audio_generator.py)
+
+Build a standalone Python script that:
+1. Reads all narration text from guide-system.js sections
+2. Generates MP3 files using edge-tts (`en-US-AvaNeural`, rate `-8%`)
+3. Falls back to pyttsx3 if edge-tts unavailable
+4. Writes manifest.json with file metadata (hash, size, text)
+5. Skips already-generated files unless `--force` flag
+6. Shows progress per section
+
+```
+python demo_audio_generator.py           # generate missing only
+python demo_audio_generator.py --force   # regenerate all
+python demo_audio_generator.py --section mcpt_table  # one section only
+python demo_audio_generator.py --test    # generate 3 test clips, no manifest write
+```
+
+---
+
+## Module 15 — Help & Documentation (static/js/help-docs.js + static/js/help-content.js)
+
+Build a complete in-app help and documentation system equivalent to AEGIS help-docs.js.
+Every module must have full documentation. No placeholder sections.
+
+### Documentation Structure
+
+```javascript
+const MCPTHelp = {
+  navigation: [
+    {
+      id: 'getting-started',
+      title: 'Getting Started',
+      icon: 'rocket',
+      items: [
+        { id: 'welcome',           title: 'Welcome to MCPT' },
+        { id: 'quick-start',       title: 'Quick Start Guide' },
+        { id: 'interface-tour',    title: 'Interface Overview' },
+        { id: 'first-steps',       title: 'Your First Week' },
+        { id: 'keyboard-shortcuts',title: 'Keyboard Shortcuts' },
+      ]
+    },
+    {
+      id: 'demos-guides',
+      title: 'Guided Tours & Demos',
+      icon: 'play-circle',
+      items: [
+        { id: 'demos-overview',    title: 'About the Guided Demos' },
+        { id: 'voice-narration',   title: 'Voice Narration Settings' },
+        { id: 'demo-controls',     title: 'Demo Controls & Speed' },
+      ]
+    },
+    {
+      id: 'mcpt-table',
+      title: 'MCPT Main Table',
+      icon: 'table-2',
+      items: [
+        { id: 'table-overview',    title: 'Table Overview' },
+        { id: 'promotion-cycle',   title: 'The Promotion Cycle' },
+        { id: 'adding-rows',       title: 'Adding Diagrams' },
+        { id: 'editing-fields',    title: 'Editing Fields' },
+        { id: 'boolean-fields',    title: 'Checklist Fields (Three-State)' },
+        { id: 'archiving',         title: 'Archiving Diagrams' },
+        { id: 'filtering',         title: 'Filtering & Searching' },
+        { id: 'column-guide',      title: 'Complete Column Reference' },
+      ]
+    },
+    {
+      id: 'authorization',
+      title: 'Authorization Dashboard',
+      icon: 'shield-check',
+      items: [
+        { id: 'auth-overview',     title: 'Authorization Overview' },
+        { id: 'auth-workflow',     title: 'Authorization Workflow' },
+        { id: 'auth-emails',       title: 'Sending Authorization Emails' },
+        { id: 'trb-chair',         title: 'TRB Chair Configuration' },
+      ]
+    },
+    {
+      id: 'dsl-generator',
+      title: 'DSL File Generator',
+      icon: 'package',
+      items: [
+        { id: 'dsl-overview',      title: 'What are DSL Files?' },
+        { id: 'dsl-categories',    title: 'The 5 Category Files' },
+        { id: 'dsl-authorizer',    title: 'Per-Authorizer Files' },
+        { id: 'dsl-download',      title: 'Downloading the ZIP' },
+        { id: 'guid-vs-dslid',     title: 'GUID vs DSL ID (Important!)' },
+      ]
+    },
+    {
+      id: 'tasking',
+      title: 'Weekly Tasking Report',
+      icon: 'calendar',
+      items: [
+        { id: 'tasking-overview',  title: 'Tasking Report Overview' },
+        { id: 'tasking-entry',     title: 'Submitting Your Weekly Tasks' },
+        { id: 'tasking-director',  title: 'Director Consolidated View' },
+        { id: 'tasking-export',    title: 'Exporting to Word' },
+      ]
+    },
+    {
+      id: 'metrics',
+      title: 'Metrics',
+      icon: 'bar-chart-2',
+      items: [
+        { id: 'metrics-overview',  title: 'Metrics Overview' },
+        { id: 'charging-guide',    title: 'Charging — SAP Upload & Pivot' },
+        { id: 'charging-columns',  title: 'Charging — Column Detection' },
+        { id: 'boe-guide',         title: 'NimbusBOE — BOE Table' },
+        { id: 'did-guide',         title: 'DID Working — Gap Analysis' },
+        { id: 'did-columns',       title: 'DID Working — Column Reference' },
+        { id: 'did-gap-criteria',  title: 'DID Gap Criteria Explained' },
+      ]
+    },
+    {
+      id: 'pal',
+      title: 'PAL Tools',
+      icon: 'check-square',
+      items: [
+        { id: 'pal-overview',      title: 'PAL Tools Overview' },
+        { id: 'pal-checklist-guide','title': 'Using the PAL Checklist' },
+        { id: 'pal-items-ref',     title: '25 Checklist Items Reference' },
+        { id: 'pal-helper-guide',  title: 'PAL Helper — Discipline Browser' },
+        { id: 'pal-disciplines',   title: 'All 12 Disciplines' },
+      ]
+    },
+    {
+      id: 'admin',
+      title: 'Administration',
+      icon: 'settings',
+      items: [
+        { id: 'admin-overview',    title: 'Admin Panel Overview' },
+        { id: 'admin-settings',    title: 'System Settings' },
+        { id: 'admin-trb',         title: 'TRB Chair Setting' },
+        { id: 'admin-sap',         title: 'SAP Charge Order Setting' },
+        { id: 'admin-email',       title: 'Email Configuration' },
+        { id: 'admin-dropdowns',   title: 'Managing Dropdowns' },
+        { id: 'admin-roles',       title: 'User Roles (IC / Admin / Director)' },
+      ]
+    },
+    {
+      id: 'notifications',
+      title: 'Notifications',
+      icon: 'bell',
+      items: [
+        { id: 'notif-overview',    title: 'Notification System' },
+        { id: 'notif-bell',        title: 'The Notification Bell' },
+        { id: 'notif-types',       title: 'Types of Notifications' },
+      ]
+    },
+    {
+      id: 'export',
+      title: 'Exporting Data',
+      icon: 'download',
+      items: [
+        { id: 'export-overview',   title: 'Export Overview' },
+        { id: 'export-excel',      title: 'Excel Export' },
+        { id: 'export-word',       title: 'Word Export' },
+        { id: 'export-dsl',        title: 'DSL ZIP Export' },
+        { id: 'export-pal',        title: 'PAL Checklist Export' },
+      ]
+    },
+    {
+      id: 'technical',
+      title: 'Technical Reference',
+      icon: 'code',
+      items: [
+        { id: 'api-overview',      title: 'Backend API Overview' },
+        { id: 'guid-dslid-ref',    title: 'GUID & DSL ID Reference' },
+        { id: 'promotion-dates',   title: 'Promotion Date Format' },
+        { id: 'bool-fields-ref',   title: 'Three-State Boolean Reference' },
+        { id: 'nimbus-urls',       title: 'Nimbus URL Construction' },
+        { id: 'windows-deploy',    title: 'Windows Deployment Notes' },
+      ]
+    },
+    {
+      id: 'troubleshooting',
+      title: 'Troubleshooting',
+      icon: 'alert-circle',
+      items: [
+        { id: 'ts-api',            title: 'API Connection Issues' },
+        { id: 'ts-auth',           title: 'Authentication Problems' },
+        { id: 'ts-upload',         title: 'File Upload Issues' },
+        { id: 'ts-export',         title: 'Export Problems' },
+      ]
+    },
+    {
+      id: 'about',
+      title: 'About MCPT',
+      icon: 'info',
+      items: [
+        { id: 'version-history',   title: 'Version History' },
+        { id: 'about',             title: 'About MCPT' },
+      ]
+    },
+  ]
+};
+```
+
+### Help Content Quality Standard
+
+Every help article (`MCPTHelp.content[id]`) must contain:
+- **Title** and optional subtitle
+- **At least 150 words** of substantive explanation
+- **Lucide icons** for visual hierarchy (using data-lucide attributes)
+- **Callout boxes** for tips, warnings, important notes
+- **Tables** where appropriate (column references, field descriptions)
+- **"Watch Demo" button** linking to the relevant guide demo section where applicable
+- **Pro tip** at the bottom for power users
+- **Related articles** links
+
+The **Column Reference** articles must be comprehensive tables listing every API field with its name, type, description, and notes — this is critical for onboarding new team members.
+
+The **GUID vs DSL ID** article must be especially thorough — this is the most common source of confusion for new users and must explain the three-identifier model (GUID, DraftDSLID, MasterDSLID) with clear diagrams/tables.
+
+### Help Search
+
+Real-time full-text search across all help content:
+- Searches titles and content HTML
+- Highlights matching terms in results
+- Keyboard navigable (↑↓ arrows, Enter to open)
+- "No results" state with suggested related topics
+- Minimum 2 characters before triggering search
+
+---
+
 ## Single-Page App — templates/index.html
 
-Standard HTML5 boilerplate. Navigation tabs map to module JS files:
+**Full Design System Implementation:**
+- Import Inter font (Google Fonts with local fallback from `static/fonts/`)
+- Import Lucide Icons (CDN with local fallback)
+- All CSS custom properties from `docs/design_spec.md` implemented in `static/css/main.css`
+- Boot sequence: 1.8s cinematic launch on first session load
+- Dark/light mode: inline `<script>` in `<head>` reads localStorage before CSS loads (prevents FOUC)
+
+**Navigation — Left Sidebar (240px):**
+```html
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon"><!-- MCPT logo mark --></div>
+    <span class="brand-name">MCPT</span>
+  </div>
+  <nav class="sidebar-nav">
+    <!-- Groups: CORE, REPORTS, METRICS, TOOLS, ADMIN -->
+    <!-- Each nav item: icon + label + optional badge -->
+    <!-- Active: left 3px accent border + accent-light bg -->
+  </nav>
+</aside>
+```
+
+**Header Bar (52px):**
+```html
+<header class="top-bar">
+  <div class="top-bar-left">
+    <span class="page-title" id="current-page-title">MCPT Table</span>
+  </div>
+  <div class="top-bar-center">
+    <div class="promotion-date-selector">
+      <!-- Dropdown: current cycle date, arrow nav for prev/next cycle -->
+    </div>
+  </div>
+  <div class="top-bar-right">
+    <div class="cycle-status-pill">
+      <!-- e.g., "Cycle 14 · Draft Phase" — links to auth dashboard -->
+    </div>
+    <button class="icon-btn" id="notification-bell">
+      <i data-lucide="bell"></i>
+      <span class="badge" id="notif-badge" hidden>0</span>
+    </button>
+    <div class="user-avatar" id="user-avatar">
+      <!-- User initials, first letter of username -->
+    </div>
+  </div>
+</header>
+```
 
 Tabs: MCPT Table | Authorization | DSL Generator | Tasking | Metrics | PAL | Admin (admin/director only)
-
-Notification bell in header. Promotion date selector in header (persisted in localStorage).
 
 Each module section: `<section id="module-{name}" class="module">` — active class shows it.
 
@@ -1170,11 +1734,17 @@ Each module section: `<section id="module-{name}" class="module">` — active cl
 
 ## CSS Key Rules (static/css/main.css)
 
+**Implement the complete Slate design system from `docs/design_spec.md`.** This is not optional styling — it defines the entire visual identity of the app.
+
+Critical behavioral rules:
 - Module visibility: `.module { display: none; } .module.active { display: block; }`
 - **NEVER set `style.display` directly on modules** — always `classList.add/remove('active')`
-- Three-state boolean cells: `.bool-null { color: #999; }`, `.bool-true { color: #22c55e; }`, `.bool-false { color: #ef4444; }`
-- Error row highlight: `tr.has-errors { border-left: 3px solid #ef4444; }`
-- Notification badge: `.badge { background: red; color: white; border-radius: 50%; ... }`
+- Three-state boolean cells: use `--bool-true`, `--bool-false`, `--bool-null` CSS variables
+- Promotion status pills: use `--status-draft`, `--status-authorized`, `--status-master` variables
+- All interactive elements: `transition: all var(--dur-fast) var(--ease-default)`
+- Button active press: `transform: scale(0.97)` on `:active`
+- Focus rings: `box-shadow: var(--shadow-focus)` on `:focus-visible`
+- Reduced motion: `@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; } }`
 
 ---
 
@@ -1187,7 +1757,11 @@ requests>=2.31.0
 openpyxl>=3.1.0
 python-docx>=1.1.0
 sspilib>=0.1.0
+edge-tts>=6.1.9
+pyttsx3>=2.90
 ```
+
+Note: `edge-tts` and `pyttsx3` are for `demo_audio_generator.py` only — not imported by the Flask app at runtime.
 
 ---
 
@@ -1207,22 +1781,27 @@ pause
 Build in this exact sequence — each layer depends on the one before:
 
 1. `config.py`, `data_init.py`, `nimbus_adapter.py`, `auth.py` — foundation
-2. `app.py`, `routes/__init__.py`, `templates/index.html`, `static/css/main.css`, `static/js/app.js` — shell
-3. `routes/main_routes.py` + `static/js/mcpt-table.js` — Module 1 (highest value, confirms API works)
-4. `routes/dsl_routes.py` + `static/js/dsl-generator.js` — Module 3 (DSL generation, critical)
-5. `static/js/auth-dashboard.js` — Module 2 (uses data already loaded in Module 1)
-6. `routes/notification_routes.py` + `static/js/notifications.js` — Module 11
-7. `routes/admin_routes.py` + `static/js/admin.js` — Module 10 (email config needed for Module 12)
-8. `routes/admin_routes.py` email handlers — Module 12
-9. `routes/tasking_routes.py` + `static/js/tasking.js` — Module 4
-10. `routes/metrics_routes.py` (charging + BOE + DID) + `static/js/metrics.js` — Modules 5, 6, 7
-11. `routes/pal_routes.py` + `static/js/pal.js` — Modules 8, 9
-12. Export handlers woven into relevant routes — Module 13
+2. `static/css/main.css` — complete Slate design system (ALL CSS variables from design_spec.md)
+3. `app.py`, `routes/__init__.py`, `templates/index.html`, `static/js/app.js` — shell with full layout, sidebar, header, boot sequence
+4. `routes/main_routes.py` + `static/js/mcpt-table.js` — Module 1 (highest value, confirms API works)
+5. `routes/dsl_routes.py` + `static/js/dsl-generator.js` — Module 3 (DSL generation, critical)
+6. `static/js/auth-dashboard.js` — Module 2 (uses data already loaded in Module 1)
+7. `routes/notification_routes.py` + `static/js/notifications.js` — Module 11
+8. `routes/admin_routes.py` + `static/js/admin.js` — Module 10 (email config needed for Module 12)
+9. `routes/admin_routes.py` email handlers — Module 12
+10. `routes/tasking_routes.py` + `static/js/tasking.js` — Module 4
+11. `routes/metrics_routes.py` (charging + BOE + DID) + `static/js/metrics.js` — Modules 5, 6, 7
+12. `routes/pal_routes.py` + `static/js/pal.js` — Modules 8, 9
+13. Export handlers woven into relevant routes — Module 13
+14. `static/js/guide-system.js` + `static/css/guide-system.css` — Module 14 (guide/demo/voiceover)
+15. `static/js/help-docs.js` + `static/js/help-content.js` — Module 15 (help documentation)
+16. `demo_audio_generator.py` — audio generation script (run after Module 14 is complete)
 
 ---
 
 ## Final Checklist Before Declaring Done
 
+**Functional:**
 - [ ] `/api/mcpt/data` returns data (confirm against `127.0.0.1:8000/get-mcpt`)
 - [ ] Promotion date filter works client-side
 - [ ] Boolean three-state rendering correct (null/true/false)
@@ -1234,3 +1813,26 @@ Build in this exact sequence — each layer depends on the one before:
 - [ ] All `open()` calls have `encoding='utf-8', errors='replace'`
 - [ ] Waitress server starts on port 5060
 - [ ] `Start_MCPT.bat` works from `C:\MCPT\`
+
+**Design & UX:**
+- [ ] All CSS custom properties from `docs/design_spec.md` implemented
+- [ ] Boot sequence plays on first session load, skippable with any key
+- [ ] Dark/light mode toggle works without flash-of-unstyled-content
+- [ ] All status pills use correct promotion cycle colors (indigo/amber/emerald/slate)
+- [ ] All three-state booleans use correct colors (emerald/red/slate)
+- [ ] Hover and focus states on every interactive element
+- [ ] Button press micro-animation: scale(0.97) on active
+- [ ] Sidebar nav active state: left 3px accent border
+- [ ] Data table has sticky header, sticky first column, row hover
+- [ ] All transitions use CSS variables (--dur-*, --ease-*)
+- [ ] Reduced motion media query implemented
+- [ ] Inter font loaded (Google Fonts + local fallback)
+
+**Guide System & Help:**
+- [ ] Guide beacon visible in bottom-right with pulse animation
+- [ ] F1 key opens help panel
+- [ ] Demo scenes written for all 13 modules
+- [ ] `demo_audio_generator.py` generates MP3s and manifest.json
+- [ ] Help documentation has content for all navigation items
+- [ ] Help search returns relevant results
+- [ ] "Watch Demo" button works from help panel
