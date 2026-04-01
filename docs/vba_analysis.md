@@ -259,6 +259,45 @@ Function Levenshtein(s1 As String, s2 As String) As Integer
 
 ---
 
+## Weekly Tasking Report.xlsm
+
+### Sheet: Source (main data sheet)
+Contains a `Tasks` table (Excel ListObject) with columns:
+- Column A: `Date` — auto-filled with today's date when row is triggered
+- Column B: `TaskID` — auto-incrementing integer (previous ID + 1)
+- Column C: (has data validation — type/category dropdown, copied from previous row)
+- Column D: (trigger column — editing this column auto-fills Date and TaskID)
+- Column E: (has data validation — copied from previous row)
+
+### Module: Main.bas — SendWeeklyExecutiveReport()
+
+**Purpose**: Generates and emails a weekly executive summary report.
+
+**Features** (Version 3.1):
+- Executive Summary: Auto-generated 2-3 sentence overview at top
+- Backlog Trend: Shows task count change vs. last week
+- Preview Mode: Review before sending
+- Settings Sheet (`ReportSettings`): Configure recipients, thresholds, options
+- Due Date Tracking: Highlight overdue items
+- Spell Check: Validates before sending
+- Historical Archive: Backs up data before deleting completed items
+
+**Logic**:
+1. Load settings from `ReportSettings` sheet
+2. Get `Tasks` table from `Source` sheet
+3. Calculate current week start (Monday)
+4. Collect all report data (`CollectReportData`)
+5. Optional spell check
+6. Show confirmation dialog
+7. Build HTML email body
+8. Send via Outlook automation
+9. Archive completed tasks → Historical sheet
+10. Delete completed tasks from Source
+
+**MCPT replacement** (Module 4 — Weekly Tasking Report): The MCPT version captures the same concept (weekly task tracking + executive report) but as a web form rather than Excel. ICs enter tasks via the web UI. Director exports/emails the consolidated report. The auto-increment TaskID pattern is preserved.
+
+---
+
 ## Column Mapping: Team_Dashboard-Diagrams.xlsx
 
 The `Team_Dashboard-Diagrams.xlsx` file in the Reports repo has 34 columns that map to the MCPT tracking table:

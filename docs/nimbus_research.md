@@ -42,32 +42,55 @@ Level notation: `"1.3.8"` — each dot adds a level.
 
 **Parsing level number**: `level_num = len(level.split('.'))` where level = `"1.3.8"` → 3
 
-### Diagram Identifiers
-Two completely different identifiers exist for every diagram:
+### Diagram Identifiers — THREE distinct IDs per diagram
 
-| Identifier | Purpose | Example | Where Used |
+Each diagram in the system has three distinct identifiers. **GUID is shared** by both Draft and Master versions. The DSLIDs are version-specific.
+
+| Identifier | Purpose | Scope | Where Used |
 |---|---|---|---|
-| `GUID` | Primary key in DB; used in Nimbus deep-link URLs | `ACDF1AE9385543888E91381F30D3F806` | URLs, API calls, DB lookups |
-| `DSLID` | Used in `.dsl` batch operation files | (different format) | Nimbus Batch Server operations |
+| `GUID` | Concept-level primary key | Shared — same value for both Draft and Master | All API calls, DB lookups, MCPT tracking |
+| `DraftDSLID` | Pointer to the Draft version in Nimbus | Draft only | Draft Nimbus URL + DSL batch files |
+| `MasterDSLID` | Pointer to the Master version in Nimbus | Master only | Master Nimbus URL + DSL batch files |
 
-**CRITICAL**: Never interchange GUID and DSLID. They are not the same value.
+**GUID is the "concept key"** — it identifies "Diagram 1.3.8" at the concept level. DraftDSLID and MasterDSLID each point to a specific Nimbus server page/entity for the draft or master copy respectively.
+
+**In the API response**:
+- `"GUID"` field = concept-level key (use for all API calls)
+- `"DSL UUID"` field = DraftDSLID (use for Draft URL and DSL batch files)
+- `"Master DSLID"` field = MasterDSLID (use for Master URL and batch files)
+
+**CRITICAL**: The Draft and Master versions also live on DIFFERENT Nimbus maps (different map GUIDs). The DSLID determines which version; the map GUID determines which Nimbus server/map.
 
 ---
 
-## Nimbus Deep Link URL
+## Nimbus Deep Link URLs — CONFIRMED FROM API RESPONSE
 
+**CRITICAL: Draft and Master use DIFFERENT map GUIDs.** The `nimbus_adapter.py` must know both.
+
+### Draft Diagram URL
 ```
-https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0:{MAP_GUID}.{DIAGRAM_GUID}
+https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0:{DRAFT_MAP_GUID}.{DraftDSLID}
+```
+- **Draft map GUID**: `9820E23DD3204072819C50B7A2E57093`
+- Uses `DraftDSLID` (NOT the GUID primary key)
+
+### Master Diagram URL
+```
+https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0:{MASTER_MAP_GUID}.{MasterDSLID}
+```
+- **Master map GUID**: `ED910D9C5F0C4F8491F8FD10A0C5695B`
+- Uses `MasterDSLID` (NOT the GUID primary key)
+
+### Example (from actual API response)
+```
+Draft:  https://nimbusweb.../0:9820E23DD3204072819C50B7A2E57093.CE71A6E2072E49BBA7C61AC62265055D
+Master: https://nimbusweb.../0:ED910D9C5F0C4F8491F8FD10A0C5695B.8C27457796C14C87B1F361F69A89002A
+GUID:   7901822C92FD4E7CABB79E53391C055E  ← completely different from both above
 ```
 
-**Hardcoded Map GUID**: `9820E23DD3204072819C50B7A2E57093`
+The `/get-mcpt` response pre-builds both hyperlinks (`"Draft Diagram Hyperlink"` and `"Master Diagram Hyperlink"` fields), so MCPT can link directly without constructing them. The `nimbus_adapter.py` construction method is provided as a fallback/for DSL files.
 
-**Example full URL**:
-```
-https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0:9820E23DD3204072819C50B7A2E57093.ACDF1AE9385543888E91381F30D3F806
-```
-
-The `Team_Dashboard-Diagrams.xlsx` file in the Reports repo has a pre-built `Hyperlink` column with this exact format, confirming the URL pattern.
+The `Team_Dashboard-Diagrams.xlsx` file in the Reports repo has a pre-built `Hyperlink` column with this format, confirming the URL patterns.
 
 ---
 

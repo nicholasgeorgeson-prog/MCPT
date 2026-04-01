@@ -96,14 +96,19 @@ if __name__ == '__main__':
 ### UI
 
 - Full-width data grid, sortable columns, sticky header
-- Promotion date selector in page header (dropdown of available dates, persisted in localStorage)
-- Columns: Level | Title | Status | IC Assigned | SP Folder | Tool Entry | Auth Status | Notes | Actions
+- Promotion date selector in page header. **`/get-mcpt` returns ALL rows** — filter client-side by `row["Promotion Date"]` (Unix ms timestamp). Store available dates from the full dataset.
+- Primary columns: Level | Diagram Title | Draft Status | Diagram Category | NAT Contact | SP Folder | Tool Entry | CR Package | Auth Status | Authorizer | Total Errors | Notes | Actions
+- Extended columns (collapsible/hidden by default): Authorization sent/accepted counts, template checks, link error counts, Change Log, Storyboard Impact
+- **Boolean cells render three states**: `null` → `—` (grey dash), `true` → `✓` (green), `false` → `✗` (red)
+- **Hyperlinks**: Use pre-built `row["Draft Diagram Hyperlink"]` and `row["Master Diagram Hyperlink"]` directly — no URL construction needed
 - **Inline edit**: Click any editable cell → text input or dropdown → Tab/Enter to save → calls `POST /edit-entry` via Flask proxy
+  - Note: JSON field names in edit-entry `"field"` parameter must match exact API key names (e.g., `"SP Folder Created"`, NOT `"sp_folder_created"`)
 - **Add entry**: "+ Add Diagram" button → modal form → GUID lookup → fill fields → save
 - **Archive**: Row action button (Admin only) → confirm → `POST /archive-entry`
-- **Status filter**: Quick-filter chips: All | Unclaimed | Claimed | Engineering Approved | NTBC | Conceptual
-- **Search**: Full-text search across Title, Owner, Level, Notes
+- **Filter chips**: All | Unclaimed | Claimed | Engineering Approved | NTBC + promotion date dropdown
+- **Search**: Full-text search across Diagram Title, Owner, Level, Notes, Change Log Entries
 - **DSL Generate**: "Generate DSL Files" button → triggers Module 3
+- **Error highlighting**: Rows where `Total Errors > 0` get a red left border / warning indicator
 
 ### Flask Routes
 
@@ -424,15 +429,37 @@ GET    /api/metrics/did/export   → Excel export
 - "Save Progress" persists state per-user per-promotion-cycle
 - "Export" → PDF-friendly HTML print view
 
-### Checklist Items (TBD — confirm with user)
+### Checklist Items — CONFIRMED from PAL Checklist.xlsx (Reports repo)
 
-Placeholder categories and items:
-1. Diagrams reviewed for completeness
-2. SIPOC data validated
-3. Authorization requests sent
-4. All Engineering Approved diagrams confirmed
-5. DSL files generated and verified
-... (25 total items to be confirmed with user)
+All 25 items confirmed. All belong to the **"Clerical"** category (document review items for PAL manuals):
+
+| # | Item |
+|---|---|
+| 1 | Document number formally reserved |
+| 2 | Check front page is filled out properly (date = TRB date, doc number is good with no brackets, doc owner is spelled like email incl [US] (AS) afterward, PA element is correct/hyperlinked correctly) |
+| 3 | Are the report title, document number, and revision letter included in the header |
+| 4 | Check the Table of Contents – when there are lowercase letters that are supposed to be uppercase, go to that section of the doc/update with caps/refresh the table of contents |
+| 5 | Is the revision letter correct |
+| 6 | Correct TRB date included |
+| 7 | Is the TOC correct |
+| 8 | Roman Numerals used for Table of Contents, up until page 1 |
+| 9 | Are all the figures and tables numbered and referenced correctly |
+| 10 | Are the margins, paragraph indentations and bullets/numbering correct |
+| 11 | Are all sheets numbered correctly |
+| 12 | Are the Contract, Line Item Number, and Data Item correct |
+| 13 | Is the Distribution Statement correct |
+| 14 | Make sure Nimbus is spelled Nimbus and not NIMBUS |
+| 15 | Make sure hyperlinks to Nimbus are correct – and to the MASTER version, not DRAFT |
+| 16 | Take out everywhere they are calling PAL manuals "process documents" |
+| 17 | Make sure NGAS is Aeronautics sector, not Aerospace sector |
+| 18 | For old PAL manuals, ensure there are no ref to old orgs, e.g. "ISWR", DPTO, etc. |
+| 19 | There should be no "shalls". State as fact — "Need", "will", "should", "do/does", "are/is" |
+| 20 | Has spell check passed? Also review blue wavy underlined grammar suggestions |
+| 21 | Check all references are in reference section – and check they are correct |
+| 22 | Check all docs called out in reference section are actually in the doc |
+| 23 | Ensure all hyperlinks work |
+| 24 | Check the first time an acronym is used, that it is spelled out |
+| 25 | Check all acronyms in the acronym list are used |
 
 ### Data Storage
 
@@ -470,19 +497,46 @@ GET  /api/pal/checklist/export             → HTML print view
 - Read-only browser — no edit operations
 - "Open in SharePoint" link for each document
 
-### Implementation
+### Implementation — CONFIRMED from PALHelperFile.xlsx (Reports repo)
 
-- SharePoint path configurable in Admin Panel
-- Uses NTLM-authenticated requests (same credentials as the user, via server-side proxy)
-- Reads SharePoint document library listing via REST API
-- No downloads — all links open SharePoint in a new browser tab
+**12 disciplines confirmed** (one sheet per discipline in source Excel):
+
+| Discipline Code | Description |
+|---|---|
+| `VE` | Vehicle Engineering |
+| `T&E` | Test & Evaluation |
+| `SW` | Software |
+| `SRV` | Survivability |
+| `SE` | Systems Engineering |
+| `PS` | Product Support |
+| `PM&P` | Program Management & Planning |
+| `FS` | Flight Sciences |
+| `EP&T` | Engineering Processes & Tools |
+| `Engineering` | General Engineering |
+| `AWWSC` | AW & WSC |
+| `AvI` | Avionics & Integration |
+
+**SharePoint base path**: `sites/AS-ENG/PAL/{discipline_code}/`
+
+**Document columns**: Name, Title, Revision, Release Date, Owner, Author, Doc Type, TD (Technical Discipline), File Size, Item Type, Path
+
+**Item Types**: Folder (for subfolders like Checklists, Formal Docs, Manuals, Templates), Item (actual files)
+
+**Implementation**:
+- Source data from PALHelperFile.xlsx embedded in the app (static data, not live SharePoint query for initial build)
+- Each row has a `Path` field (relative SharePoint path, e.g. `sites/AS-ENG/PAL/VE/Manuals`)
+- Construct SharePoint URL as `https://{sharepoint_host}/{path}/{filename}`
+- Document type icons: Checklist 📋, PAL Manual 📖, Formal Doc 📄, Template 📝
+- Filter by discipline → filter by Doc Type within discipline
 
 ### Flask Routes
 
 ```
-GET  /api/pal/documents                → list available PAL documents
+GET  /api/pal/documents                → list all PAL documents (all disciplines)
 GET  /api/pal/documents/<discipline>   → documents for specific discipline
 ```
+
+**Note**: For initial build, serve PALHelperFile data statically (embed as JSON). Live SharePoint queries are a future enhancement.
 
 ---
 
@@ -740,39 +794,50 @@ def require_role(*roles):
 
 ## nimbus_adapter.py — Nimbus Abstraction Layer
 
+**CRITICAL: Draft and Master use DIFFERENT map GUIDs.** Confirmed from actual API response.
+
 ```python
 class NimbusAdapter:
     BASE_URL = "https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0"
-    MAP_GUID = "9820E23DD3204072819C50B7A2E57093"
+    DRAFT_MAP_GUID  = "9820E23DD3204072819C50B7A2E57093"   # Draft diagrams
+    MASTER_MAP_GUID = "ED910D9C5F0C4F8491F8FD10A0C5695B"  # Master diagrams — DIFFERENT!
 
-    def diagram_url(self, guid: str) -> str:
-        """Generate Nimbus deep link URL for a diagram GUID."""
-        return f"{self.BASE_URL}:{self.MAP_GUID}.{guid}"
+    def draft_url(self, draft_dslid: str) -> str:
+        """Generate Nimbus deep link for a Draft diagram (uses DraftDSLID, not GUID)."""
+        return f"{self.BASE_URL}:{self.DRAFT_MAP_GUID}.{draft_dslid}"
+
+    def master_url(self, master_dslid: str) -> str:
+        """Generate Nimbus deep link for a Master diagram (uses MasterDSLID, not GUID)."""
+        return f"{self.BASE_URL}:{self.MASTER_MAP_GUID}.{master_dslid}"
 
     def generate_dsl_content(self, dslid_list: list) -> str:
         """Generate DSL file content (one DSLID per line)."""
         return '\n'.join(str(d) for d in dslid_list if d)
 
-    def parse_authorization_string(self, auth_str: str) -> dict:
-        """Parse 'Authorization Pending - 2/13/2026' into structured data."""
-        import re
-        if not auth_str:
-            return {'status': 'none', 'date': None}
-        m = re.match(r'^(Authorization Pending|Promotion Ready|Authorized)\s*(?:-\s*(.+))?$', auth_str)
-        if m:
-            return {'status': m.group(1), 'date': m.group(2)}
-        return {'status': auth_str, 'date': None}
-
     def level_number(self, level_str: str) -> int:
         """Extract numeric level from '1.3.8 Draft Copy' → 3."""
+        if not level_str:
+            return 0
         clean = level_str.replace(' Draft Copy', '').strip()
         return len(clean.split('.'))
 
     def is_draft(self, level_str: str) -> bool:
-        return 'Draft Copy' in level_str
+        return 'Draft Copy' in (level_str or '')
+
+    def promotion_date_from_ms(self, ts_ms) -> str:
+        """Convert Unix milliseconds timestamp to display string."""
+        from datetime import datetime
+        if not ts_ms:
+            return ''
+        return datetime.fromtimestamp(ts_ms / 1000).strftime('%m/%d/%Y')
 
 # Global instance
 nimbus = NimbusAdapter()
+
+# NOTE: The /get-mcpt response already includes pre-built "Draft Diagram Hyperlink"
+# and "Master Diagram Hyperlink" fields. Use those directly in the UI.
+# Only use nimbus_adapter URL methods when building DSL-related features or
+# when working with data that doesn't already have the hyperlink.
 ```
 
 ---
@@ -877,12 +942,12 @@ When build begins (after API contract confirmed):
 - [x] Nimbus research complete
 - [x] 43 pre-flight Q&A complete
 - [x] Developer questions email sent (11 questions)
-- [ ] API contract confirmed (awaiting dev team response)
-- [ ] `/get-mcpt` JSON response sample received
-- [ ] MCPT tracking table SQL schema received
-- [ ] API base URL confirmed
-- [ ] API auth mechanism confirmed
-- [ ] BUILD BEGINS
+- [x] API contract confirmed ✅ 2026-04-01
+- [x] `/get-mcpt` JSON response sample received ✅ (49 fields, full Pydantic model)
+- [x] MCPT tracking table — no table, compiled SQL JOIN query ✅
+- [x] API base URL confirmed ✅ `127.0.0.1:8000` dev / nimbus server IP:8000 prod
+- [x] API auth mechanism confirmed ✅ open on internal network
+- [x] BUILD CAN BEGIN
 
 ---
 

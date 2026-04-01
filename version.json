@@ -1,7 +1,7 @@
 {
-  "version": "0.1.0",
-  "date": "2026-03-31",
+  "version": "0.1.1",
+  "date": "2026-04-01",
   "phase": "pre-build",
-  "status": "Awaiting dev team API response before build begins",
-  "next_milestone": "v0.2.0 — API contract confirmed, build sprint begins"
+  "status": "API contract confirmed. Downloading Reports repo files. Build begins next session.",
+  "next_milestone": "v0.2.0 — Flask app skeleton + Module 1 MCPT Main Table"
 }

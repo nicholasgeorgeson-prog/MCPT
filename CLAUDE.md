@@ -3,7 +3,7 @@
 ## Project Overview
 **MCPT** (Model Change Package Tracker) is a Flask-based multi-user web application replacing a suite of Excel/VBA workbooks used by the NGAS (Northrop Grumman Aeronautics Systems) NAT team. The team manages TIBCO Nimbus process model diagrams through a two-week promotion cycle (Draft → authorized → promoted to Master). Created by Nicholas Georgeson. Will deploy on a Windows network server at TBD hostname, port 5060.
 
-**Current phase**: Pre-build. Awaiting backend dev team API response (see `docs/developer_questions_email.md`). Build begins once API contract is confirmed.
+**Current phase**: ✅ API contract confirmed (2026-04-01). Build can begin. See `docs/developer_questions_email.md` for full answers log.
 
 ## Architecture
 - **Backend**: Flask (Python 3), Waitress WSGI (NOT Flask dev server)
@@ -14,28 +14,41 @@
 - **Local DB**: SQLite WAL mode — notifications only (`data/notifications.db`)
 - **Export**: `openpyxl` (Excel), `python-docx` (Word), HTML string templates
 
-## Backend API (Separate Dev Team)
-- **Base URL**: TBD — awaiting dev team response
-- **Auth mechanism**: TBD — awaiting dev team response
-- **Known endpoints**:
-  - `GET /get-mcpt` — full MCPT table (main data load)
-  - `GET /get-trb` — authorization progress data
+## Backend API (Separate Dev Team) — CONFIRMED 2026-04-01
+
+- **Dev URL**: `http://127.0.0.1:8000`
+- **Prod URL**: `http://{nimbus-server-ip}:8000`
+- **Auth**: Open on internal network (session token is future goal)
+- **Active endpoints**:
+  - `GET /get-mcpt` — full MCPT tracking query; NO filters; returns ALL rows; no pagination (yet)
   - `GET /get-diagram?guid={GUID}` — single diagram details
-  - `POST /add-entry` — add new MCPT tracking row
-  - `POST /remove-entry` — remove row by GUID
-  - `POST /edit-entry` — edit single field {guid, field, value}
-  - `POST /archive-entry` — archive row by GUID
+  - `GET /get-user?username={windows_username}` — **BACKLOG** (dev team building — do NOT manage users locally)
+  - `POST /add-entry` — add new row; JSON body
+  - `POST /remove-entry` — remove by GUID; body: `{"guid": "..."}` (just GUID)
+  - `POST /edit-entry` — edit field; JSON body: `{"guid": "...", "field": "FieldName", "value": "..."}`
+  - `POST /archive-entry` — archive by GUID
+  - `POST /get-trb` — **BACKLOG** (future — POST with date param; returns TRB data similar to get-mcpt)
+- **No MCPT table exists** — `/get-mcpt` is a compiled SQL query joining multiple tables
 - **Source of truth**: `nicholasgeorgeson-prog/Reports` GitHub repo — SQL schemas in `data/sql_schemas/`
 
-## Key Data Facts
-- **Nimbus base URL**: `https://nimbusweb.as.northgrum.com/Nimbus/CtrlWebIsapi.dll/app/diagram/0:9820E23DD3204072819C50B7A2E57093.{GUID}`
-- **Map GUID** (hardcoded in URL): `9820E23DD3204072819C50B7A2E57093`
-- **DSLID ≠ GUID**: GUID is for URLs and DB lookups; DSLID is for `.dsl` batch operation files
-- **Authorization field format**: `"Authorization Pending - 2/13/2026"` or `"Promotion Ready - 2/6/2026"` — date embedded in string
-- **Level format**: `"1.3.8 Draft Copy"` or `"1.3.8"` (Master) — Level number = dots + 1
-- **Diagram statuses**: Unclaimed / Claimed / Engineering Approved / Conceptual Image / Not To Be Claimed
+## Key Data Facts — CONFIRMED FROM API RESPONSE
+
+- **Draft Nimbus map GUID**: `9820E23DD3204072819C50B7A2E57093` (used in Draft Diagram Hyperlink)
+- **Master Nimbus map GUID**: `ED910D9C5F0C4F8491F8FD10A0C5695B` (used in Master Diagram Hyperlink) ← DIFFERENT FROM DRAFT
+- **Draft URL**: `https://nimbusweb.../0:9820E23DD3204072819C50B7A2E57093.{DraftDSLID}` (uses DraftDSLID, NOT GUID)
+- **Master URL**: `https://nimbusweb.../0:ED910D9C5F0C4F8491F8FD10A0C5695B.{MasterDSLID}` (uses MasterDSLID, NOT GUID)
+- **GUID vs DSLIDs** (CONFIRMED): GUID = concept-level key shared by both Draft and Master (use for all API/DB operations). DraftDSLID = points to Draft Nimbus page. MasterDSLID = points to Master Nimbus page. Draft and Master are also on DIFFERENT Nimbus map servers.
+- **JSON field `"DSL UUID"`** = DraftDSLID in the API response
+- **`Tracker` table DOES EXIST** — named `Tracker` (not `ModelChangePackageTracker`). Has columns: DiagramGUID (FK), promotionDate, diagramCategory, modelChangePackageTitle, trbTitle, trbDescription, natContact, spFolderCreated, toolEntryCreated, relatedFilesPosted, crPackageReady, docRegistryItemAttatched, docRegistryURLUpdated, allDiagramsIncluded, peerReviewComplete, notes, overlapDisposition
+- **Promotion Date format**: Unix milliseconds timestamp (e.g., `1775174400000`). Python: `datetime.fromtimestamp(ts/1000)`. JS: `new Date(ts)`
+- **Booleans**: Three-state — `null` (unknown/N/A), `true`, `false` — UI must handle all three
+- **Authorization field**: Simple string (e.g., `"Update Pending"`) + separate `"Authorizer"` field with name
+- **Level format**: `"1.3.8 Draft Copy"` (Draft) or `"1.3.8"` (Master) — Level number = dots + 1
+- **Last Promotion Date**: String `"12/16/2025"` (MM/DD/YYYY)
+- **`/get-mcpt` returns ALL rows** — no server-side filters; apply promotion date filter client-side
+- **JSON keys have spaces/special chars** — use bracket notation in JS: `row["DSL UUID"]`, `row["SP Folder Created"]`
 - **SAP charge order**: `9L99G054` (NAT team, admin-editable)
-- **Nimbus EOL**: September 1, 2025 — build Nimbus integration behind abstraction layer for future tool swap
+- **Nimbus EOL**: September 1, 2025 — all Nimbus code behind `nimbus_adapter.py` abstraction
 
 ## User Roles
 | Role | Key Permissions |

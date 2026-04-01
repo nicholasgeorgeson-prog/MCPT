@@ -796,6 +796,220 @@ Build order recommendation:
         "tags": "timeline, 4-weeks, backend-separate, frontend-only, build-order",
         "source": "preflight-q26"
     },
+    # ─── API CONTRACT CONFIRMED (2026-04-01) ────────────────────────────────
+    {
+        "category": "api-contract",
+        "title": "CONFIRMED: /get-mcpt response format — 49 fields, Unix ms dates, three-state booleans",
+        "content": """API contract confirmed 2026-04-01 from dev team response.
+
+KEY FACTS:
+- /get-mcpt returns ALL rows — no server-side filters. Filter promotion date client-side.
+- Promotion Date = Unix MILLISECONDS timestamp (e.g. 1775174400000).
+  Python: datetime.fromtimestamp(ts/1000). JS: new Date(ts)
+- Booleans: THREE states — null (unknown/N/A), true, false. UI must handle all three.
+  JS: val === null ? '—' : val ? '✓' : '✗'
+- JSON keys have SPACES and special characters: use bracket notation in JS.
+  e.g. row["SP Folder Created"], row["DSL UUID"]
+- GUID = non-null primary key, always present.
+- "DSL UUID" field = DraftDSLID (the identifier for DSL batch files and Draft Nimbus URL)
+- "Last Promotion Date" = string "12/16/2025" (MM/DD/YYYY), NOT a timestamp
+- No pagination currently. May be added if data grows.
+
+API base URL: http://127.0.0.1:8000 (dev). Nimbus server IP:8000 (prod).
+Auth: Open on internal network. Session token = future goal.
+/get-user endpoint: BACKLOG — dev team building. Frontend must NOT manage user tables.
+/get-trb: BACKLOG — POST with date param. Returns authorization progress data.
+/edit-entry: JSON body {"guid": "...", "field": "FieldName", "value": "..."}.
+  Field name must match exact API JSON key (e.g. "SP Folder Created" not "sp_folder_created").
+/remove-entry: body is just {"guid": "..."}.""",
+        "tags": "api-contract, confirmed, get-mcpt, boolean, unix-timestamp, filters, json-keys",
+        "source": "dev-team-response-2026-04-01"
+    },
+    {
+        "category": "api-contract",
+        "title": "CONFIRMED: Tracker table schema — backend DB",
+        "content": """The table is named 'Tracker' (NOT 'ModelChangePackageTracker').
+/get-mcpt is a compiled SQL JOIN query reading from this table.
+
+Tracker columns (from mcpt_query.sql analysis):
+- DiagramGUID TEXT (FK → Diagrams.GUID)
+- promotionDate → "Promotion Date" (Unix ms timestamp)
+- diagramCategory → "Diagram Category (Identify Primary & Verify Selection)"
+- modelChangePackageTitle → "Model Change Package Title"
+- trbTitle → "PEACE Portal TRB Change Package Title OR Info Only"
+- trbDescription → "PEACE Portal TRB Change Package Description"
+- natContact → "NAT Contact"
+- spFolderCreated → "SP Folder Created" (boolean)
+- toolEntryCreated → "Tool Entry Created" (boolean)
+- relatedFilesPosted → "Related Files Posted" (boolean)
+- crPackageReady → "CR Package Ready" (boolean)
+- docRegistryItemAttatched → "Doc Registry Item Attatched" (boolean, intentional typo)
+- docRegistryURLUpdated → "Updated Doc Registry URL" (boolean)
+- allDiagramsIncluded → "All Diagrams Included In Tracker" (boolean)
+- peerReviewComplete → "Peer Review Complete" (boolean)
+- notes → "Notes" (text)
+- overlapDisposition → "Overlap Disposition" (boolean)
+
+JOIN: LEFT JOIN Tracker t ON d.GUID = t.DiagramGUID
+WHERE: WHERE d.GUID IN (SELECT DiagramGUID FROM Tracker) — only returns tracked diagrams.
+Multiple Occurrences: YES if DiagramGUID appears > 1 time in Tracker (different promo cycles).
+
+SQL placeholders (dev team will resolve):
+- <TRB_chair> — Windows username of the Engineering Process TRB Chair authorizer
+- <draft_url_sql> — Draft URL prefix string
+- <master_url_sql> — Master URL prefix string
+STRING_AGG used (non-standard SQLite) — dev team handles via Python custom aggregate.""",
+        "tags": "tracker-table, schema, sql-query, placeholders, string-agg, multiple-occurrences",
+        "source": "mcpt_query.sql-analysis-2026-04-01"
+    },
+    {
+        "category": "nimbus",
+        "title": "CORRECTED: GUID vs DraftDSLID vs MasterDSLID — three distinct identifiers",
+        "content": """GUID is the CONCEPT-LEVEL key. It is shared by both Draft and Master versions of a diagram.
+DraftDSLID and MasterDSLID are VERSION-SPECIFIC. They point to the Nimbus server page/entity.
+
+Summary:
+- GUID: identifies the diagram concept. Same value for Draft and Master. Use for ALL API/DB operations.
+- DraftDSLID: points to the Draft version in Nimbus. Used in Draft URL + DSL batch files.
+- MasterDSLID: points to the Master version in Nimbus. Used in Master URL + DSL batch files.
+
+In /get-mcpt JSON:
+- "GUID" = concept key (always present, non-null)
+- "DSL UUID" = DraftDSLID (used in Draft URL + DSL files)
+- "Master DSLID" = MasterDSLID (used in Master URL + batch files)
+
+Draft and Master also live on DIFFERENT Nimbus map servers:
+- Draft map GUID:  9820E23DD3204072819C50B7A2E57093
+- Master map GUID: ED910D9C5F0C4F8491F8FD10A0C5695B
+
+URLs:
+- Draft: https://nimbusweb.../0:9820E23DD3204072819C50B7A2E57093.{DraftDSLID}
+- Master: https://nimbusweb.../0:ED910D9C5F0C4F8491F8FD10A0C5695B.{MasterDSLID}
+
+The /get-mcpt response pre-builds both "Draft Diagram Hyperlink" and "Master Diagram Hyperlink".
+Use those directly — no URL construction needed in the UI.""",
+        "tags": "guid, dslid, draft, master, nimbus-url, map-guid, identifier",
+        "source": "user-clarification-2026-04-01"
+    },
+    {
+        "category": "ui-modules",
+        "title": "PAL Checklist — 25 confirmed items, all Clerical category",
+        "content": """All 25 PAL Checklist items confirmed from PAL Checklist.xlsx in Reports repo.
+ALL items are in the 'Clerical' category (document review for PAL manuals).
+
+Items:
+1. Document number formally reserved
+2. Check front page is filled out properly (date = TRB date, doc number, doc owner)
+3. Report title, document number, and revision letter in header
+4. Table of Contents lowercase/uppercase check
+5. Revision letter correct
+6. Correct TRB date included
+7. TOC correct
+8. Roman Numerals for Table of Contents, up until page 1
+9. All figures and tables numbered and referenced correctly
+10. Margins, paragraph indentations and bullets/numbering correct
+11. All sheets numbered correctly
+12. Contract, Line Item Number, and Data Item correct
+13. Distribution Statement correct
+14. Nimbus spelled Nimbus not NIMBUS
+15. Hyperlinks to Nimbus correct — MASTER version, not DRAFT
+16. No "process documents" for PAL manuals
+17. NGAS is Aeronautics sector, not Aerospace sector
+18. No ref to old orgs (ISWR, DPTO → Aeronautics Systems)
+19. No "shalls" — use "need", "will", "should", "do/does", "are/is"
+20. Spell check passed + grammar suggestions reviewed
+21. All references in reference section — correct
+22. All docs in reference section are actually used
+23. All hyperlinks work
+24. First acronym use is spelled out
+25. All acronyms in list are used""",
+        "tags": "pal-checklist, 25-items, clerical, document-review, trb",
+        "source": "PAL Checklist.xlsx-analysis-2026-04-01"
+    },
+    {
+        "category": "ui-modules",
+        "title": "PAL Helper — 12 discipline sheets, SharePoint paths confirmed",
+        "content": """PALHelperFile.xlsx has 12 sheets, one per discipline:
+VE (Vehicle Engineering), T&E (Test & Evaluation), SW (Software),
+SRV (Survivability), SE (Systems Engineering), PS (Product Support),
+PM&P (Program Management & Planning), FS (Flight Sciences),
+EP&T (Engineering Processes & Tools), Engineering, AWWSC, AvI (Avionics & Integration)
+
+Each sheet has columns: Name, Title, Revision, Release Date, Owner, Author, Doc Type,
+TD (Technical Discipline), File Size, Item Child Count, Item Type, Path
+
+SharePoint base path pattern: sites/AS-ENG/PAL/{discipline_code}/
+Document types: Checklist, PAL Manual, Formal Doc, Template, Appendix
+Item Types: Folder (subdirectory), Item (actual file)
+
+Subfolders per discipline: Checklists, Formal Docs (or Formal_Docs), Manuals, Templates
+
+For initial build: embed PALHelperFile as static JSON in the Flask app.
+No live SharePoint queries needed — just serve the embedded data and construct links.
+Live SP queries are a future enhancement.
+
+SharePoint URL construction: https://{sp_host}/{path}/{name}""",
+        "tags": "pal-helper, disciplines, sharepoint, 12-disciplines, static-data",
+        "source": "PALHelperFile.xlsx-analysis-2026-04-01"
+    },
+    {
+        "category": "api-contract",
+        "title": "Authorization Progress data structure — future /get-trb response format",
+        "content": """Team_Dashboard-Authorization_Progress.xlsx confirmed structure for future /get-trb endpoint.
+
+Columns: GUID, Level, Authorization, Diagram Type, User, Group, Resource,
+Sign Off Status, Sign Off Date, Sequence, Request From, Due Date, Diagram Title,
+Contains Drill Down?, Date, Active State
+
+Key values:
+- Authorization: "Authorization Pending - 2/13/2026" or "Promotion Ready - 2/6/2026" (date embedded)
+  NOTE: This is the DETAILED format — different from the MCPT main table "Update Pending" simple string.
+- Sign Off Status: "Not Signed Off", "Accepted"
+- Active State: "Active" or "Inactive"
+- Sequence: integer (1 = first to sign)
+- Request From: display name of who requested authorization
+
+/get-trb will be a POST with date parameter. Status: BACKLOG.
+Use this structure to design the Authorization Dashboard (Module 2) even before /get-trb is built.
+Can query Authorizations table subset from the auth data included in /get-mcpt
+(AuthorizationSent, AuthorizationAccepted, TotalAuthorizations fields).""",
+        "tags": "authorization-progress, get-trb, sign-off, sequence, active-state, backlog",
+        "source": "Team_Dashboard-Authorization_Progress.xlsx-2026-04-01"
+    },
+    {
+        "category": "vba-logic",
+        "title": "Weekly Tasking Report VBA — Tasks table structure and email report",
+        "content": """Weekly Tasking Report.xlsm VBA (Version 3.1 FINAL).
+
+Tasks table (Excel ListObject named 'Tasks') columns:
+- A: Date (auto-filled with today when Col D is edited)
+- B: TaskID (auto-incrementing integer, previous + 1)
+- C: Category/type (data validation dropdown, copied from previous row)
+- D: TRIGGER COLUMN (editing this auto-fills A and B)
+- E: Secondary field (data validation, copied from previous row)
+
+Source sheet: 'Source'. Historical archive: 'Historical' sheet.
+Settings: 'ReportSettings' sheet (recipients, thresholds, max items = 10, long-running = 14 days).
+
+Main function: SendWeeklyExecutiveReport()
+1. Load settings from ReportSettings
+2. Calculate current week start (Monday)
+3. Collect report data (new tasks, completed, overdue, backlog trend)
+4. Spell check if enabled
+5. Show confirmation dialog
+6. Build HTML email body with executive summary + task tables
+7. Send via Outlook.Application CreateObject
+8. Archive completed → Historical sheet
+9. Delete completed from Source
+
+Features: Executive summary auto-generated, backlog trend vs last week,
+due date highlighting, spell check, historical archive, preview mode.
+
+MCPT Module 4 replacement: Web form (no Excel). ICs submit tasks via browser.
+Preserve: auto-increment ID, week-start calculation, executive summary logic.""",
+        "tags": "weekly-tasking, tasks-table, executive-report, auto-increment, outlook, vba",
+        "source": "Weekly Tasking Report.xlsm-analysis-2026-04-01"
+    },
 ]
 
 

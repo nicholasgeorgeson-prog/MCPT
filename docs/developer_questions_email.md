@@ -1,6 +1,6 @@
 # Developer Questions Email
 
-**Status**: DRAFT — ready to send. Paste this into an email to the backend dev team.
+**Status**: ✅ ANSWERED — 2026-04-01. All critical questions resolved. See Answers Log below.
 
 ---
 
@@ -75,18 +75,18 @@ Thank you — once these are answered the frontend architecture will be finalize
 
 ---
 
-## Answers Log
+## Answers Log — Updated 2026-04-01
 
-| # | Question | Status | Answer | Date |
-|---|---|---|---|---|
-| 1 | GET /get-mcpt JSON format | ⏳ Pending | | |
-| 2 | MCPT table SQL schema | ⏳ Pending | | |
-| 3 | User auth endpoint | ⏳ Pending | | |
-| 4 | POST /edit-entry format | ⏳ Pending | | |
-| 5 | API base URL and port | ⏳ Pending | | |
-| 6 | API authentication method | ⏳ Pending | | |
-| 7 | add-entry / remove-entry bodies | ⏳ Pending | | |
-| 8 | Pagination | ⏳ Pending | | |
-| 9 | SIPOCs/Storyboards FK bug | ⏳ Pending | | |
-| 10 | GET /get-trb details | ⏳ Pending | | |
-| 11 | GET /get-diagram params | ⏳ Pending | | |
+| # | Question | Status | Answer |
+|---|---|---|---|
+| 1 | GET /get-mcpt JSON format | ✅ Answered | Full 2-row sample provided. 49 fields. Boolean = null/true/false (three states). Promotion Date = Unix ms. No filter params. Returns ALL rows. JSON keys have spaces/special chars. |
+| 2 | MCPT table SQL schema | ✅ Answered | No separate table — it's a compiled SQL JOIN query. GUID is primary key (non-null). Pydantic model provided (TrackerResult class, 49 fields). |
+| 3 | User auth endpoint | ✅ Answered | Dev team will build /get-user. It goes on their kanban. Frontend should NOT manage user tables. |
+| 4 | POST /edit-entry format | ✅ Answered | JSON body confirmed: `{"guid": "...", "field": "FieldName", "value": "..."}`. At least for creation. `/remove-entry` just expects GUID. |
+| 5 | API base URL and port | ✅ Answered | Dev: `127.0.0.1:8000`. Prod: `{nimbus-server-ip}:8000` |
+| 6 | API authentication method | ✅ Answered | Open on internal network to start. Session token is future goal. |
+| 7 | add-entry / remove-entry bodies | ✅ Answered | JSON body for add. Remove just expects GUID. |
+| 8 | Pagination | ✅ Answered | No pagination currently planned. Returns all records. May be added if data grows large. |
+| 9 | SIPOCs/Storyboards FK bug | ✅ Answered | Confirmed artifact from previous schema draft. "Type" as FK no longer necessary. Dev team will fix. |
+| 10 | GET /get-trb details | ✅ Answered | BACKLOG — future POST endpoint with date query. Returns data similar to /get-mcpt. Not needed for initial build. |
+| 11 | GET /get-diagram params | ⏳ Pending | Not yet answered. |
