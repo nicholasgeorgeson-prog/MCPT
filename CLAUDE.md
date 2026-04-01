@@ -74,8 +74,11 @@
 13. Export — Excel, Word, HTML, DSL ZIP
 14. Guide & Demo System — interactive demos with MP3 voiceovers (edge-tts) for all 13 modules, help beacon, spotlight tours
 15. Help & Documentation — complete in-app documentation for every module, searchable, with "Watch Demo" integration
+16. Video Studio — automated Playwright+OpenCV+Manim+edge-tts video pipeline; `setup.py` + `generate_all_videos.py`; 51 MP4s; review server at localhost:7777; zero paid services; zero user interaction until review
 
 **Design Standard**: "Slate" design language (docs/design_spec.md) — "Apple for enterprise" polish. Same level of attention to detail as AEGIS or higher. Own visual identity: cool white, blue accent (#2563EB), promotion cycle status colors (indigo/amber/emerald). NOT AEGIS warm/gold.
+
+**Pioneer First Philosophy**: "No single tool has been used this way for a corporate app before." Every module, every feature, every technical choice is filtered through this lens. See ruflo_build_prompt.md → Pioneer First section.
 
 ## Key Files
 | File | Purpose |
@@ -84,6 +87,7 @@
 | `docs/ruflo_build_prompt.md` | Ruflo code generation prompt (Modules 1-15, design system, all specs) |
 | `docs/opus_supervisor_prompt.md` | Opus supervisor prompt (correctness criteria, failure modes, intervention) |
 | `docs/design_spec.md` | Complete "Slate" design system — CSS variables, components, typography |
+| `docs/video_studio_spec.md` | Module 16 full spec — pipeline architecture, scene definitions, setup.py, all code |
 | `docs/architecture_decisions.md` | All architectural decisions with rationale |
 | `docs/developer_questions_email.md` | Email to send to backend dev team |
 | `docs/preflight_qa.md` | All 43 pre-flight Q&A pairs (complete record) |
@@ -98,7 +102,7 @@
 ## GitHub
 - **Repo**: `nicholasgeorgeson-prog/MCPT`, branch `main`
 - **Git index LOCKED** — MUST use GitHub REST API for all pushes (same pattern as AEGIS)
-- **PAT**: `[REDACTED — stored locally only, not in repo]`
+- **PAT**: `ghp_REDACTED_SEE_LOCAL_CLAUDE_MD`
 - **Workflow**: GET refs → GET commits → POST blobs → POST trees → POST commits → PATCH refs
 - **Batch size**: 25-30 files per commit
 

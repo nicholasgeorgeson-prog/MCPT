@@ -46,6 +46,35 @@ MCPT uses its own design language. Cool white surfaces, confident blue accent (`
 
 ---
 
+## Pioneer First — The Design Philosophy Behind Every Module
+
+> *"No single tool has been used this way for a corporate app before."*
+
+This is not a slogan. It is the decision-making filter applied to every module, every feature, and every technical choice in MCPT.
+
+**What it means in practice:**
+
+Before implementing any feature, ask: *Has this been done in corporate engineering software before?* If the answer is "yes, everyone does it that way," that is a warning signal — not a template to follow.
+
+| MCPT Feature | What everyone else does | What MCPT does |
+|---|---|---|
+| Help videos | Screen-record with OBS, export as-is | Playwright + OpenCV zoom-to-element + Manim concept animations + edge-tts narration, zero paid services, fully automated |
+| Demo system | Static screenshots in a PDF | Live in-app spotlight tour with synchronized MP3 voiceover |
+| Status indicators | Text labels | Color-coded promotion cycle pills that eliminate the need to read anything |
+| Boolean fields | Checkbox (true/false only) | Three-state: null/true/false — the null state solves a real workflow problem no one else has encoded |
+| Data grid editing | Separate edit form/modal | Inline optimistic edit with typed validation — feels like a premium spreadsheet |
+| Help documentation | External PDF or SharePoint site | Full in-app searchable documentation with "Watch Demo" integration on every article |
+| Module guides | Tooltip tooltips | Contextual spotlight tours with keyboard navigation and narrated audio |
+
+**Apply this filter to every decision:**
+- If it's the default way Flask does something — check if there's a better way
+- If it's the standard jQuery approach — it's vanilla JS with a better UX
+- If it's the typical corporate "just make it work" implementation — it should be polished enough that a new employee is impressed the first time they open it
+
+**This is the standard every module is held to.** Functional correctness is table stakes. Pioneer First is what makes this app worth building.
+
+---
+
 ## CRITICAL RULES — Read Before Writing a Single Line
 
 1. **All file `open()` calls**: `encoding='utf-8', errors='replace'`
@@ -101,9 +130,64 @@ C:\MCPT\
 │       ├── pal.js
 │       ├── admin.js
 │       └── notifications.js
-└── templates/
-    └── index.html
+├── templates/
+│   └── index.html
+└── video_studio/
+    ├── setup.py                     ← ONE-TIME INSTALLER (run before generate_all_videos.py)
+    ├── generate_all_videos.py       ← THE ONE COMMAND — full pipeline
+    ├── config.py
+    ├── requirements_video.txt
+    ├── core/
+    │   ├── app_controller.py
+    │   ├── test_data_seeder.py
+    │   └── video_manifest.py
+    ├── scenes/
+    │   ├── __init__.py
+    │   ├── base_scene.py
+    │   ├── module_01_mcpt_table.py
+    │   ├── module_02_auth_dashboard.py
+    │   ├── module_03_dsl_generator.py
+    │   ├── module_04_weekly_tasking.py
+    │   ├── module_05_charging.py
+    │   ├── module_06_boe.py
+    │   ├── module_07_did_working.py
+    │   ├── module_08_pal_checklist.py
+    │   ├── module_09_pal_helper.py
+    │   ├── module_10_admin_panel.py
+    │   ├── module_11_notifications.py
+    │   └── concept_scenes.py
+    ├── recorder/
+    │   ├── playwright_recorder.py
+    │   ├── cursor_injector.py
+    │   └── element_locator.py
+    ├── enhancer/
+    │   ├── pipeline.py
+    │   ├── webm_to_mp4.py
+    │   ├── zoom_controller.py
+    │   ├── cursor_overlay.py
+    │   ├── callout_renderer.py
+    │   ├── lower_third.py
+    │   └── transition_renderer.py
+    ├── audio/
+    │   ├── narration_generator.py
+    │   └── audio_assembler.py
+    ├── manim_scenes/
+    │   ├── promotion_cycle.py
+    │   ├── guid_dslid_model.py
+    │   ├── bool_states.py
+    │   ├── auth_workflow.py
+    │   ├── dsl_file_structure.py
+    │   └── manim_runner.py
+    ├── assembler/
+    │   ├── video_assembler.py
+    │   └── chapter_writer.py
+    └── review/
+        ├── review_server.py
+        └── templates/
+            └── review.html
 ```
+
+Output: `static/videos/` — 51 MP4 files organized by module/concept.
 
 ---
 
@@ -1676,6 +1760,89 @@ Real-time full-text search across all help content:
 
 ---
 
+## Module 16 — Video Studio (video_studio/)
+
+**Full specification**: Read `docs/video_studio_spec.md` in its entirety before writing any Video Studio code.
+
+The Video Studio is a standalone Python subsystem that lives in `video_studio/` alongside the main Flask app. It is NOT part of the Flask runtime — it is a separate automation pipeline run on-demand to generate help videos. The main app and the video studio are completely independent.
+
+### What to Build
+
+Build every file listed in the `video_studio/` directory tree in the Project File Structure section above. No stubs. Every component must be functional.
+
+**Two user-facing commands — and ONLY two:**
+
+```bash
+# 1. One-time setup (installs all dependencies automatically)
+python video_studio/setup.py
+
+# 2. Generate all videos (fully hands-off, ~2-3 hours)
+python video_studio/generate_all_videos.py
+```
+
+The user does not run any other command. No `playwright install` manually. No `conda install`. No configuration files to edit. `setup.py` handles everything.
+
+### Architecture Summary
+
+The pipeline has 7 steps executed in sequence by `generate_all_videos.py`:
+
+1. **Start MCPT** — `app_controller.py` starts the Flask app on port 5060 (via subprocess), polls `/api/health` until ready
+2. **Seed demo data** — `test_data_seeder.py` POSTs 10–12 realistic DEMO_DIAGRAMS via the live API
+3. **Manim concept animations** — `manim_runner.py` renders 5 concept MP4s (or uses pre-rendered if Manim unavailable)
+4. **Playwright recording** — `playwright_recorder.py` drives the live MCPT UI, captures WebM video per sub-demo
+5. **Narration** — `narration_generator.py` generates MP3 per segment via `edge-tts` (voice: `en-US-AvaNeural`)
+6. **Enhancement + assembly** — `pipeline.py` → FFmpeg (CRF 18) → OpenCV zoom-to-element → Pillow lower thirds → callout arrows → cross-dissolve transitions → mix audio
+7. **Review server** — `review_server.py` starts Flask on port 7777 with approve/retake/reject per video
+
+### Pioneer First: Why This Is Unprecedented
+
+No corporate engineering tool has ever shipped:
+- **Automated live UI recordings** via Playwright (as opposed to manual screen recordings)
+- **Programmatic zoom-to-element** using OpenCV bicubic interpolation
+- **Manim-quality concept animations** (3Blue1Brown engine) in corporate documentation
+- **Free, offline-capable AI narration** (edge-tts) synchronized per-segment
+- **Single-command, zero-interaction** video generation for an entire 15-module app
+
+This is the "wow" moment for anyone who opens the review server.
+
+### Scene Definitions
+
+Scenes are Python dataclasses in `video_studio/scenes/`. Each module has its own scene file. The scene files define:
+- What URL to navigate to
+- What selectors to interact with
+- What narration text to speak
+- What elements to zoom into
+- What callout arrows to draw
+
+Full scene definitions for Module 1 are in `docs/video_studio_spec.md`. Implement equivalent scene definitions for all Modules 2–11. Each module needs:
+- 1 `overview.mp4` (~2–3 min, full module walkthrough)
+- 2–4 `{feature_name}.mp4` sub-demos (~45–90s each, focused on one interaction)
+
+### Output
+
+All generated videos go to `static/videos/`:
+```
+static/videos/
+├── manifest.json
+├── concepts/          ← 5 Manim animations (~25–60s each)
+└── modules/           ← 11 module folders, each with overview + sub-demos
+```
+
+Total: ~51 MP4 files, ~65 minutes of content.
+
+### Key Implementation Rules
+
+1. **FFmpeg quality**: Always use CRF 18, `-preset slow`, `-pix_fmt yuv420p` — never default quality
+2. **Playwright video**: Always post-process WebM through FFmpeg before any other enhancement
+3. **Custom cursor**: Always inject `cursor_injector.py` CSS+JS before recording begins
+4. **Zoom trigger**: Zoom before click/type interactions only — not on page loads
+5. **Narration sync**: Generate all narration MP3s for a segment before video enhancement begins
+6. **Manim fallback**: If `.manim_available` file contains `no`, skip Manim steps and use pre-rendered MP4s
+7. **No hard failures**: If one video fails, log the error and continue with remaining videos
+8. **Review server**: `generate_all_videos.py` ends by launching `review_server.py` at localhost:7777 and printing the URL
+
+---
+
 ## Single-Page App — templates/index.html
 
 **Full Design System Implementation:**
@@ -1796,6 +1963,7 @@ Build in this exact sequence — each layer depends on the one before:
 14. `static/js/guide-system.js` + `static/css/guide-system.css` — Module 14 (guide/demo/voiceover)
 15. `static/js/help-docs.js` + `static/js/help-content.js` — Module 15 (help documentation)
 16. `demo_audio_generator.py` — audio generation script (run after Module 14 is complete)
+17. `video_studio/` — Module 16 (full Video Studio pipeline — see `docs/video_studio_spec.md`)
 
 ---
 
@@ -1836,3 +2004,19 @@ Build in this exact sequence — each layer depends on the one before:
 - [ ] Help documentation has content for all navigation items
 - [ ] Help search returns relevant results
 - [ ] "Watch Demo" button works from help panel
+
+**Video Studio (Module 16):**
+- [ ] `video_studio/setup.py` runs to completion with zero user interaction
+- [ ] `setup.py` handles Playwright browser install, FFmpeg (auto-download on Windows), Manim (graceful fallback)
+- [ ] `generate_all_videos.py` starts MCPT, seeds data, generates all videos end-to-end
+- [ ] Scene definitions exist for all 11 modules (scenes/module_01_*.py through module_11_*.py)
+- [ ] All 5 Manim concept animations (or pre-rendered fallbacks) present in static/videos/concepts/
+- [ ] Custom cursor injected before every Playwright recording
+- [ ] Zoom-to-element applied before every UI interaction
+- [ ] Lower thirds rendered with Pillow (no ImageMagick)
+- [ ] Narration generated with edge-tts (en-US-AvaNeural)
+- [ ] All final MP4s use CRF 18 (professional quality)
+- [ ] Review server launches at localhost:7777 after generation completes
+- [ ] Review server has approve / needs retake / reject per video
+- [ ] `static/videos/manifest.json` written after review session
+- [ ] Pioneer First: no hardcoded column positions, no paid services, no manual setup steps
